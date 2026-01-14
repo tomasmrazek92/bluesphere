@@ -77,6 +77,17 @@ To build the files, you have two defined scripts:
 - `pnpm dev`: Builds and creates a local server that serves all files (check [Serving files on development mode](#serving-files-on-development-mode) for more info).
 - `pnpm build`: Builds to the production directory (`dist`).
 
+
+### Using local files from webflow
+
+Open up your tab with webflow, and run the following JS:
+
+```js
+localStorage.setItem('isStagingForMe', 'true')
+```
+
+This will ensure your local copy gets used instead of the one in the CDN.
+
 ### Serving files on development mode
 
 When you run `pnpm dev`, two things happen:
