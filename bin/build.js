@@ -7,7 +7,19 @@ const BUILD_DIRECTORY = 'dist';
 const PRODUCTION = process.env.NODE_ENV === 'production';
 
 // Config entrypoint files
-const ENTRY_POINTS = ['src/homepage.js', 'src/index.js'];
+const ENTRY_POINTS = [
+  // Global modules (load on all pages)
+  'src/index.js',
+  'src/global-form-validation.js',
+  'src/global-form-submission.js',
+  'src/global-swiper.js',
+  'src/global-cart-modal.js',
+  'src/global-auth.js',
+  // Page-specific modules
+  'src/homepage.js',
+  'src/biomarker-packages.js',
+  'src/deine-bestellung.js',
+];
 
 // Config dev serving
 const LIVE_RELOAD = !PRODUCTION;
