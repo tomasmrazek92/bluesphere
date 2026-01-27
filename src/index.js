@@ -1,5 +1,15 @@
 import { initMaskTextReveal } from './textmask';
 
+function waitForGlobals(callback) {
+  if (typeof gsap !== 'undefined' && typeof $ !== 'undefined' && typeof countries !== 'undefined') {
+    callback();
+  } else {
+    setTimeout(function () { waitForGlobals(callback); }, 50);
+  }
+}
+
+waitForGlobals(function () {
+
 gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger, DrawSVGPlugin, SplitText);
 
 // Country Selection
@@ -177,3 +187,5 @@ let modalController;
 modalController = initModalBasic();
 window.openModal = modalController.openModal;
 window.closeAllModals = modalController.closeAllModals;
+
+}); // end waitForGlobals

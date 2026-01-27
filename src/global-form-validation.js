@@ -517,18 +517,26 @@
         FormState.checkFormValidity();
       });
 
-      // Nice-select changes
-      const niceSelectList = waitlistForm.querySelector('.nice-select .list');
-      if (niceSelectList) {
-        niceSelectList.addEventListener('click', function (e) {
-          if (e.target.tagName === 'LI') {
+      // Nice-select uses jQuery .trigger("change") which doesn't fire native
+      // DOM change events. Listen for clicks on all nice-select options instead.
+      const allNiceSelectLists = waitlistForm.querySelectorAll('.nice-select .list');
+      allNiceSelectLists.forEach(function (list) {
+        list.addEventListener('click', function (e) {
+          const li = e.target.closest('li');
+          if (li) {
             setTimeout(function () {
               FormState.genderValid = genderSelect.value && genderSelect.value !== '';
+              const cs = waitlistForm.querySelector(
+                '#country, select[name="country"], select[name="Country"]'
+              );
+              if (cs) {
+                FormState.countryValid = cs.value && cs.value !== '';
+              }
               FormState.checkFormValidity();
             }, 100);
           }
         });
-      }
+      });
     }
 
     // Country select validation

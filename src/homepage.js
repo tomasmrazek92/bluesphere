@@ -1,5 +1,15 @@
 import { initMaskTextReveal } from './textmask';
 
+function waitForGlobals(callback) {
+  if (typeof gsap !== 'undefined' && typeof $ !== 'undefined') {
+    callback();
+  } else {
+    setTimeout(function () { waitForGlobals(callback); }, 50);
+  }
+}
+
+waitForGlobals(function () {
+
 // Hero Anim
 $(document).ready(function () {
   let tl = gsap.timeline();
@@ -1107,3 +1117,5 @@ $('.hp_features-card.is-6').each(function () {
   tl.to([card, avatars], { scale: 1, opacity: 1, ease: 'power4.out', duration: 1, stagger: 0.05 });
   tl.to(items, { y: '0em', opacity: 1, stagger: 0.1 }, '<0.4');
 });
+
+}); // end waitForGlobals
