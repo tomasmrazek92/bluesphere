@@ -10,6 +10,18 @@
     CHECKOUT_URL: '/deine-bestellung',
   };
 
+  // URL slug to SKU mapping for /package-* pages
+  const SLUG_TO_SKU = {
+    'package-mens-health': 'mens_health',
+    'package-womens-health': 'womens_health',
+    'package-chronic-inflammation': 'chronic_inflammation',
+    'package-eisenmetabolismus': 'iron_metabolism',
+    'package-heart-health': 'heart_health',
+    'package-vitamin-b-stoffwechsel': 'vitamin_b_metabolism',
+    'package-vitamin-d': 'vitamin_d',
+    'package-longterm-health': 'longterm_health',
+  };
+
   // Package data (shared across all pages)
   const PACKAGES = {
     mens_health: {
@@ -270,7 +282,8 @@
         const el = itemTemplate.cloneNode(true);
         el.setAttribute('data-sku', item.sku);
 
-        const img = $('.cart_modal-list_item_visual img', el);
+        // Use data-cart attributes for proper element selection
+        const img = $('[data-cart="cart-item-img"]', el);
         if (img) {
           img.src = pkg.image;
           img.alt = pkg.name;
@@ -278,22 +291,16 @@
           img.removeAttribute('sizes');
         }
 
-        const titleWrap = $('.cart_modal-list_item-text_wrap:not(.is-2)', el);
-        if (titleWrap) {
-          const titleEl = $('.text-size-small', titleWrap);
-          if (titleEl) titleEl.textContent = pkg.name;
+        const titleEl = $('[data-cart="cart-item-title"]', el);
+        if (titleEl) titleEl.textContent = pkg.name;
 
-          const descWrap = $('.text-color-gray-70 .text-size-small', titleWrap);
-          if (descWrap) descWrap.textContent = `${Object.keys(pkg.biomarkers).length} Biomarker`;
-        }
+        const descEl = $('[data-cart="cart-item-desc"]', el);
+        if (descEl) descEl.textContent = `${Object.keys(pkg.biomarkers).length} Biomarker`;
 
-        const priceWrap = $('.cart_modal-list_item-price-wrap', el);
-        if (priceWrap) {
-          const priceEl = $('.text-size-small', priceWrap);
-          if (priceEl) priceEl.textContent = fmt(priceInfo?.final || pkg.basePrice);
-        }
+        const priceEl = $('[data-cart="cart-item-price"]', el);
+        if (priceEl) priceEl.textContent = fmt(priceInfo?.final || pkg.basePrice);
 
-        const trashBtn = $('.cart_modal-list_item-trash', el);
+        const trashBtn = $('[data-cart="cart-item-remove"]', el);
         if (trashBtn) {
           trashBtn.style.cursor = 'pointer';
           trashBtn.addEventListener('click', (e) => {
@@ -455,11 +462,51 @@
     });
   }
 
+  // Setup add-to-cart buttons on /package-* pages
+  function setupPackagePageButtons() {
+    const path = window.location.pathname.replace(/\/$/, ''); // remove trailing slash
+    const slug = path.split('/').pop(); // get last segment (e.g., "package-vitamin-d")
+    const sku = SLUG_TO_SKU[slug];
+
+    if (!sku) {
+      debug('Not a package page or unknown slug:', slug);
+      return;
+    }
+
+    const pkg = PACKAGES[sku];
+    if (!pkg) {
+      debug('Package not found for SKU:', sku);
+      return;
+    }
+
+    debug('Package page detected:', slug, '-> SKU:', sku);
+
+    // Find "In den Warenkorb" buttons - look for buttons with cart-related text or data attributes
+    const addToCartButtons = $$('[data-cart="add-to-cart"], [data-add-to-cart], [data-hero="item"]');
+
+    addToCartButtons.forEach((btn) => {
+      // Check if button text contains "warenkorb" (case insensitive)
+      const text = btn.textContent.toLowerCase();
+      if (!text.includes('warenkorb')) return;
+
+      debug('Found add-to-cart button:', btn);
+
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        debug('Add to cart clicked for package:', sku);
+        addToCart(sku);
+      });
+    });
+  }
+
   // Initialize on DOM ready
   function init() {
     debug('Initializing global cart modal');
     setupCartModal();
     setupCartTriggers();
+    setupPackagePageButtons();
     updateCartCount();
 
     window.addEventListener('cart-updated', () => {
