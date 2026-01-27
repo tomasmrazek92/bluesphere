@@ -19,7 +19,7 @@
     'package-heart-health': 'heart_health',
     'package-vitamin-b-stoffwechsel': 'vitamin_b_metabolism',
     'package-vitamin-d': 'vitamin_d',
-    'package-longterm-health': 'longterm_health',
+    'longterm-health': 'longterm_health',
   };
 
   // Package data (shared across all pages)
@@ -253,7 +253,14 @@
       const firstItem = $('.cart_modal-list_item', listContainer);
       if (firstItem) {
         itemTemplate = firstItem.cloneNode(true);
-        debug('Item template initialized');
+        debug('Item template initialized, innerHTML:', itemTemplate.innerHTML.substring(0, 200));
+        debug('Template has data-cart attrs:', {
+          img: !!$('[data-cart="cart-item-img"]', itemTemplate),
+          title: !!$('[data-cart="cart-item-title"]', itemTemplate),
+          desc: !!$('[data-cart="cart-item-desc"]', itemTemplate),
+          price: !!$('[data-cart="cart-item-price"]', itemTemplate),
+          remove: !!$('[data-cart="cart-item-remove"]', itemTemplate),
+        });
       }
     }
 
@@ -274,10 +281,9 @@
         const el = itemTemplate.cloneNode(true);
         el.setAttribute('data-sku', item.sku);
 
-        // Use data-cart attributes for proper element selection
-        const img = $('[data-cart="cart-item-img"]', el);
+        // Find elements using data-cart attributes or fallback to positional selectors
+        const img = $('[data-cart="cart-item-img"]', el) || $('img', el);
         if (img) {
-          // Use image stored in cart item, fall back to PACKAGES
           const imgSrc = item.image || pkg.image;
           if (imgSrc) {
             img.src = imgSrc;
@@ -296,7 +302,7 @@
         const priceEl = $('[data-cart="cart-item-price"]', el);
         if (priceEl) priceEl.textContent = fmt(priceInfo?.final || pkg.basePrice);
 
-        const trashBtn = $('[data-cart="cart-item-remove"]', el);
+        const trashBtn = $('[data-cart="cart-item-remove"]', el) || $('[class*="remove"], [class*="trash"], [class*="delete"], .cart_modal-list_item-remove', el);
         if (trashBtn) {
           trashBtn.style.cursor = 'pointer';
           trashBtn.addEventListener('click', (e) => {
@@ -305,6 +311,8 @@
             removeFromCart(item.sku);
           });
         }
+
+        debug('Rendered item:', item.sku, 'title:', titleEl?.textContent, 'price:', priceEl?.textContent, 'img:', !!img, 'trash:', !!trashBtn);
 
         listContainer.appendChild(el);
       });
@@ -444,6 +452,7 @@
 
     debug('Cart triggers initialized:', triggers.length);
 
+    // Delegated listener for cart open triggers
     document.addEventListener('click', (e) => {
       const cartIcon = e.target.closest('[data-cart-trigger], [data-open-cart]');
       if (cartIcon) {
@@ -451,6 +460,43 @@
         e.stopPropagation();
         openCartModal();
       }
+    });
+
+    // Global delegated listener for buy buttons on any page
+    document.addEventListener('click', (e) => {
+      const buyBtn = e.target.closest('[data-packages="btn-buy"]');
+      if (!buyBtn) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Try to find SKU from the card context
+      const card = buyBtn.closest('[data-package-sku]');
+      let sku = card ? card.getAttribute('data-package-sku') : null;
+
+      // Fallback: check button's own data attribute
+      if (!sku) sku = buyBtn.getAttribute('data-package-sku');
+
+      // Fallback: detect from page URL slug
+      if (!sku) {
+        const slug = window.location.pathname.replace(/\/$/, '').split('/').pop();
+        sku = SLUG_TO_SKU[slug];
+      }
+
+      if (!sku || !PACKAGES[sku]) {
+        debug('Buy button clicked but no valid SKU found');
+        return;
+      }
+
+      const pkg = PACKAGES[sku];
+      // Try to grab image from nearest card or hero
+      const imgEl = card
+        ? (card.querySelector('[data-packages="img"]') || card.querySelector('img'))
+        : document.querySelector('section img.cover-img, .b-test_head img.cover-img, img');
+      const image = imgEl ? imgEl.src : '';
+
+      debug('Global buy button clicked:', sku, image);
+      addToCart(sku, image);
     });
   }
 

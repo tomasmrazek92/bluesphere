@@ -67,15 +67,6 @@
   // ========================================
   // API HELPERS
   // ========================================
-  async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-  }
-
   async function apiCall(endpoint, options = {}) {
     const url = CONFIG.API_BASE + endpoint;
     const token = SecureStorage.get(AUTH_CONFIG.TOKEN_KEY);
@@ -116,17 +107,17 @@
   };
 
   async function register(formData) {
-    const { firstName, lastName, email, password } = formData;
+    const { firstName, lastName, email, password, dateOfBirth, gender } = formData;
 
     debug.log('Registering user:', email);
-
-    const hashedPassword = await hashPassword(password);
 
     const payload = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.toLowerCase().trim(),
-      password: hashedPassword,
+      password: password,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
       role: 'PATIENT',
     };
 
@@ -155,13 +146,11 @@
   async function login(email, password) {
     debug.log('Logging in user:', email);
 
-    const hashedPassword = await hashPassword(password);
-
     const response = await apiCall('/user/login', {
       method: 'POST',
       body: JSON.stringify({
         email: email.toLowerCase().trim(),
-        password: hashedPassword,
+        password: password,
       }),
     });
 
@@ -509,8 +498,10 @@
           return;
         }
 
-        if (!password || password.length < 8) {
-          showFormError(form, 'Passwort muss mindestens 8 Zeichen haben');
+        if (!password || password.length < 8 ||
+            !/[A-Z]/.test(password) || !/[a-z]/.test(password) ||
+            !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+          showFormError(form, 'Passwort: min. 8 Zeichen, 1 Großbuchstabe, 1 Kleinbuchstabe, 1 Zahl und 1 Sonderzeichen');
           return;
         }
 
@@ -519,7 +510,33 @@
           return;
         }
 
-        pendingRegistration = { firstName, lastName, email, password };
+        const dateOfBirthRaw =
+          $('#date-of-birth', registerModal)?.value ||
+          $('input[name="date-of-birth"]', registerModal)?.value ||
+          $('input[name="dateOfBirth"]', registerModal)?.value ||
+          $('input[type="date"]', registerModal)?.value ||
+          '';
+
+        if (!dateOfBirthRaw) {
+          showFormError(form, 'Bitte Geburtsdatum eingeben');
+          return;
+        }
+
+        // Ensure ISO 8601 format (YYYY-MM-DD)
+        const dateOfBirth = new Date(dateOfBirthRaw).toISOString().split('T')[0];
+
+        const gender =
+          $('#gender-register', registerModal)?.value ||
+          $('select[name="gender-register"]', registerModal)?.value ||
+          $('select[name="gender"]', registerModal)?.value ||
+          '';
+
+        if (!gender) {
+          showFormError(form, 'Bitte Geschlecht auswählen');
+          return;
+        }
+
+        pendingRegistration = { firstName, lastName, email, password, dateOfBirth, gender };
 
         setButtonLoading(nextBtn, true);
 
