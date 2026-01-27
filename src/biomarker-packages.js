@@ -111,8 +111,8 @@
     const currentCalc = window.CartModal.calculate(items);
     const savings = calculation.deductions - currentCalc.deductions;
 
-    // Add to cart
-    window.CartModal.add(product.sku);
+    // Add to cart (pass image from product)
+    window.CartModal.add(product.sku, product.image);
 
     if (savings > 0) {
       showNotification(
@@ -255,12 +255,15 @@
         e.stopPropagation();
         debug.log('Buy button clicked for:', packageSku);
 
+        // Grab the image from the card DOM
+        const cardImg = card.querySelector('[data-packages="img"], [data-packages=" img"]');
+
         const product = {
           sku: packageSku,
           name: packageData.name,
           price: packageData.basePrice,
           currency: 'eur',
-          image: packageData.image,
+          image: cardImg ? cardImg.src : '',
           priceId: CONFIG.PACKAGE_IDS[packageSku] || packageSku,
           qty: 1,
         };
@@ -278,12 +281,15 @@
           e.stopPropagation();
           debug.log('Cart button clicked for:', packageSku);
 
+          // Grab the image from the card DOM
+          const cardImg = card.querySelector('[data-packages="img"], [data-packages=" img"]');
+
           const product = {
             sku: packageSku,
             name: packageData.name,
             price: packageData.basePrice,
             currency: 'eur',
-            image: packageData.image,
+            image: cardImg ? cardImg.src : '',
             priceId: CONFIG.PACKAGE_IDS[packageSku] || packageSku,
             qty: 1,
           };

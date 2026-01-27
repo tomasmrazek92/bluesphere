@@ -27,8 +27,7 @@
     mens_health: {
       name: 'Männergesundheit',
       basePrice: 8743,
-      image:
-        'https://cdn.prod.website-files.com/683eeb6aa2b5e751b457ca93/6949c771d356e1648a13d459_mens_health.jpg',
+      image: '',
       biomarkers: {
         lh: { name: 'LH', price: 1457 },
         fsh: { name: 'FSH', price: 1457 },
@@ -43,8 +42,7 @@
     womens_health: {
       name: 'Frauengesundheit',
       basePrice: 12143,
-      image:
-        'https://cdn.prod.website-files.com/683eeb6aa2b5e751b457ca93/6949c771d356e1648a13d459_womens_health.jpg',
+      image: '',
       biomarkers: {
         progesterone: { name: 'Progesterone', price: 1360 },
         estradiol: { name: 'Estradiol', price: 1360 },
@@ -61,8 +59,7 @@
     chronic_inflammation: {
       name: 'Chronische Entzündung',
       basePrice: 3332,
-      image:
-        'https://cdn.prod.website-files.com/683eeb6aa2b5e751b457ca93/6949c7714515e18a087eaa20_chronic_inflammation.jpg',
+      image: '',
       biomarkers: {
         hscrp: { name: 'hsC-reaktive Protein', price: 1166 },
         neutrophile_granulozyten: { name: 'Neutrophile Granulozyten', price: 1166 },
@@ -72,8 +69,7 @@
     iron_metabolism: {
       name: 'Eisen-Metabolismus',
       basePrice: 2873,
-      image:
-        'https://cdn.prod.website-files.com/683eeb6aa2b5e751b457ca93/6949c771d356e1648a13d459_iron_metabolism.jpg',
+      image: '',
       biomarkers: {
         ferritin: { name: 'Ferritin', price: 1457 },
         transferrin: { name: 'Transferrin', price: 583 },
@@ -84,8 +80,7 @@
     heart_health: {
       name: 'Herzgesundheit',
       basePrice: 4498,
-      image:
-        'https://cdn.prod.website-files.com/683eeb6aa2b5e751b457ca93/6949c771d356e1648a13d459_heart_health.jpg',
+      image: '',
       biomarkers: {
         apo_b: { name: 'APO B', price: 2332 },
         hscrp: { name: 'hsC-reaktive Protein', price: 1166 },
@@ -95,8 +90,7 @@
     vitamin_b_metabolism: {
       name: 'Vitamin B Stoffwechsel',
       basePrice: 9236,
-      image:
-        'https://cdn.prod.website-files.com/683eeb6aa2b5e751b457ca93/6949c771d356e1648a13d459_vitamin_b.jpg',
+      image: '',
       biomarkers: {
         vitamin_b2: { name: 'Vitamin B2', price: 3322 },
         vitamin_b12: { name: 'Vitamin B12', price: 1457 },
@@ -107,8 +101,7 @@
     vitamin_d: {
       name: 'Vitamin D',
       basePrice: 1865,
-      image:
-        'https://cdn.prod.website-files.com/683eeb6aa2b5e751b457ca93/6949c771d356e1648a13d459_vitamin_d.jpg',
+      image: '',
       biomarkers: {
         vitamin_d_25oh: { name: 'Vitamin D 25OH', price: 1865 },
       },
@@ -116,8 +109,7 @@
     longterm_health: {
       name: 'Longterm Health',
       basePrice: 3964,
-      image:
-        'https://cdn.prod.website-files.com/683eeb6aa2b5e751b457ca93/6949c771d356e1648a13d459_longterm_health.jpg',
+      image: '',
       biomarkers: {
         hba1c: { name: 'HbA1C', price: 1166 },
         crp: { name: 'CRP', price: 1166 },
@@ -285,10 +277,14 @@
         // Use data-cart attributes for proper element selection
         const img = $('[data-cart="cart-item-img"]', el);
         if (img) {
-          img.src = pkg.image;
+          // Use image stored in cart item, fall back to PACKAGES
+          const imgSrc = item.image || pkg.image;
+          if (imgSrc) {
+            img.src = imgSrc;
+            img.removeAttribute('srcset');
+            img.removeAttribute('sizes');
+          }
           img.alt = pkg.name;
-          img.removeAttribute('srcset');
-          img.removeAttribute('sizes');
         }
 
         const titleEl = $('[data-cart="cart-item-title"]', el);
@@ -334,10 +330,13 @@
     debug('Removed from cart:', sku);
   }
 
-  function addToCart(sku) {
+  function addToCart(sku, image) {
     const items = readCart();
     if (!items.find((i) => i.sku === sku)) {
-      items.push({ sku, addedAt: Date.now() });
+      const entry = { sku, addedAt: Date.now() };
+      // Store image from the DOM if provided
+      if (image) entry.image = image;
+      items.push(entry);
       writeCart(items);
       showNotification('Paket hinzugefügt', 'success');
     }
@@ -495,8 +494,12 @@
         e.preventDefault();
         e.stopPropagation();
 
-        debug('Add to cart clicked for package:', sku);
-        addToCart(sku);
+        // Grab the hero image from the page
+        const heroImg = $('section img.cover-img, .b-test_head img.cover-img');
+        const image = heroImg ? heroImg.src : '';
+
+        debug('Add to cart clicked for package:', sku, 'image:', image);
+        addToCart(sku, image);
       });
     });
   }
