@@ -281,7 +281,7 @@
         const el = itemTemplate.cloneNode(true);
         el.setAttribute('data-sku', item.sku);
 
-        // Find elements using data-cart attributes or fallback to positional selectors
+        // Find elements using data-cart attributes or fallback to class-based selectors
         const img = $('[data-cart="cart-item-img"]', el) || $('img', el);
         if (img) {
           const imgSrc = item.image || pkg.image;
@@ -293,16 +293,31 @@
           img.alt = pkg.name;
         }
 
-        const titleEl = $('[data-cart="cart-item-title"]', el);
+        // Title: data-cart attr, or first heading-like element in the text area
+        const titleEl = $('[data-cart="cart-item-title"]', el)
+          || $('.cart_modal-list_item-title', el)
+          || $('.heading-style-h6', el)
+          || $('.heading-style-h5', el);
         if (titleEl) titleEl.textContent = pkg.name;
 
-        const descEl = $('[data-cart="cart-item-desc"]', el);
+        // Description: data-cart attr, or desc class, or text-size-small in text area
+        const descEl = $('[data-cart="cart-item-desc"]', el)
+          || $('.cart_modal-list_item-desc', el)
+          || $('.text-size-small', el);
         if (descEl) descEl.textContent = `${Object.keys(pkg.biomarkers).length} Biomarker`;
 
-        const priceEl = $('[data-cart="cart-item-price"]', el);
+        // Price: data-cart attr, or price class, or heading in price area
+        const priceEl = $('[data-cart="cart-item-price"]', el)
+          || $('.cart_modal-list_item-price', el)
+          || $('.cart_modal-list_item-box .heading-style-h4', el);
         if (priceEl) priceEl.textContent = fmt(priceInfo?.final || pkg.basePrice);
 
-        const trashBtn = $('[data-cart="cart-item-remove"]', el) || $('[class*="remove"], [class*="trash"], [class*="delete"], .cart_modal-list_item-remove', el);
+        // Remove button
+        const trashBtn = $('[data-cart="cart-item-remove"]', el)
+          || $('.cart_modal-list_item-remove', el)
+          || $('[class*="remove"]', el)
+          || $('[class*="trash"]', el)
+          || $('[class*="delete"]', el);
         if (trashBtn) {
           trashBtn.style.cursor = 'pointer';
           trashBtn.addEventListener('click', (e) => {
@@ -312,7 +327,13 @@
           });
         }
 
-        debug('Rendered item:', item.sku, 'title:', titleEl?.textContent, 'price:', priceEl?.textContent, 'img:', !!img, 'trash:', !!trashBtn);
+        debug('Rendered item:', item.sku, {
+          title: titleEl?.textContent,
+          price: priceEl?.textContent,
+          img: !!img,
+          trash: !!trashBtn,
+          elHTML: el.innerHTML.substring(0, 500),
+        });
 
         listContainer.appendChild(el);
       });

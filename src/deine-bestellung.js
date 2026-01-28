@@ -361,6 +361,7 @@
 
       const payload = {
         event_type: 'blood_test_booked',
+        user_id: booking.user_id || '',
         event_data: {
           ...booking,
           calendly_event: e.data?.payload || {},
