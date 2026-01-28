@@ -197,12 +197,26 @@
       </div>`;
     document.body.appendChild(container);
 
+    const widgetEl = container.querySelector('.calendly-inline-widget');
+
+    function initWidget() {
+      if (window.Calendly) {
+        window.Calendly.initInlineWidget({
+          url,
+          parentElement: widgetEl,
+          prefill: { name: data.name, email: data.email },
+        });
+      }
+    }
+
     if (window.Calendly) {
-      Calendly.initInlineWidget({
-        url,
-        parentElement: container.querySelector('.calendly-inline-widget'),
-        prefill: { name: data.name, email: data.email },
-      });
+      initWidget();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://assets.calendly.com/assets/external/widget.js';
+      script.async = true;
+      script.onload = initWidget;
+      document.body.appendChild(script);
     }
   }
 
