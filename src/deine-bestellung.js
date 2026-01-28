@@ -198,25 +198,55 @@
     document.body.appendChild(container);
 
     const widgetEl = container.querySelector('.calendly-inline-widget');
+    debug.log('Calendly widget element:', widgetEl);
+    debug.log('Calendly URL:', url);
+    debug.log('window.Calendly available:', !!window.Calendly);
 
     function initWidget() {
+      debug.log('initWidget called, window.Calendly:', !!window.Calendly);
       if (window.Calendly) {
-        window.Calendly.initInlineWidget({
-          url,
-          parentElement: widgetEl,
-          prefill: { name: data.name, email: data.email },
-        });
+        try {
+          window.Calendly.initInlineWidget({
+            url,
+            parentElement: widgetEl,
+            prefill: { name: data.name, email: data.email },
+          });
+          debug.log('Calendly.initInlineWidget called successfully');
+        } catch (err) {
+          debug.error('Calendly.initInlineWidget error:', err);
+        }
+      } else {
+        debug.error('window.Calendly still not available after script load');
       }
     }
 
     if (window.Calendly) {
       initWidget();
     } else {
-      const script = document.createElement('script');
-      script.src = 'https://assets.calendly.com/assets/external/widget.js';
-      script.async = true;
-      script.onload = initWidget;
-      document.body.appendChild(script);
+      debug.log('Loading Calendly widget script...');
+      const existing = document.querySelector('script[src*="assets.calendly.com"]');
+      if (existing) {
+        debug.log('Calendly script tag exists but Calendly not ready, waiting...');
+        const check = setInterval(() => {
+          if (window.Calendly) {
+            clearInterval(check);
+            initWidget();
+          }
+        }, 100);
+        setTimeout(() => clearInterval(check), 10000);
+      } else {
+        const script = document.createElement('script');
+        script.src = 'https://assets.calendly.com/assets/external/widget.js';
+        script.async = true;
+        script.onload = () => {
+          debug.log('Calendly script loaded');
+          initWidget();
+        };
+        script.onerror = (err) => {
+          debug.error('Failed to load Calendly script:', err);
+        };
+        document.body.appendChild(script);
+      }
     }
   }
 
