@@ -504,18 +504,28 @@
   // ========================================
   // INITIALIZATION
   // ========================================
+  let initAttempts = 0;
+  const MAX_ATTEMPTS = 50; // 5 seconds max
+
   function init() {
-    debug.log('=== Biomarker package page initializing ===');
+    initAttempts++;
 
     // Wait for CartModal to be available
     if (!window.CartModal) {
-      debug.log('Waiting for CartModal...');
-      setTimeout(init, 100);
-      return;
+      if (initAttempts <= MAX_ATTEMPTS) {
+        if (initAttempts === 1) debug.log('Waiting for CartModal...');
+        setTimeout(init, 100);
+        return;
+      }
+      debug.error('CartModal not available after 5s - initializing without it');
     }
 
+    debug.log('=== Biomarker package page initializing ===');
+
     renderPackageCards();
-    renderCartUI();
+    if (window.CartModal) {
+      renderCartUI();
+    }
     setupCartControls();
     setupCheckout();
 
