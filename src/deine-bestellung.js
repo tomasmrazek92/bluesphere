@@ -240,11 +240,22 @@
           return;
         }
 
-        // Check doctor selection
+        // Check doctor selection (also check nice-select selected value)
         const practiceSelect = $(
-          '[data-flow="practice-select"], #doctor-practice-select, select[name="practice"], select[name="doctor"]'
+          '#Praxis, [data-flow="practice-select"], #doctor-practice-select, select[name="Praxis"], select[name="practice"], select[name="doctor"]'
         );
-        const practice = practiceSelect?.value;
+        let practice = practiceSelect?.value;
+
+        // Fallback: nice-select may not update the hidden select, read from nice-select UI
+        if (!practice && practiceSelect) {
+          const niceSelect = practiceSelect.nextElementSibling;
+          if (niceSelect && niceSelect.classList.contains('nice-select')) {
+            const selected = niceSelect.querySelector('.option.selected');
+            if (selected && selected.getAttribute('data-value')) {
+              practice = selected.getAttribute('data-value');
+            }
+          }
+        }
         if (!practice) {
           showNotification('Bitte wählen Sie eine Arztpraxis', 'error');
           return;
@@ -257,7 +268,7 @@
         const bookingData = {
           name: user?.name || 'Guest',
           email: user?.email || '',
-          practice: practiceSelect.options[practiceSelect.selectedIndex]?.text || practice,
+          practice: practiceSelect?.options?.[practiceSelect.selectedIndex]?.text || practice,
           total: calc.total,
           packages: items.map((i) => PACKAGES[i.sku]?.name).join(', '),
           items: items,
