@@ -584,6 +584,7 @@
           showNotification('Anmeldung erfolgreich!', 'success');
           closeModal();
           updateAuthUI();
+          openCalendlyModal();
         } catch (error) {
           debug.error('Login error:', error);
           showFormError(form, error.message);
@@ -716,12 +717,85 @@
   }
 
   // ========================================
+  // CALENDLY MODAL
+  // ========================================
+  const CALENDLY_URL = 'https://calendly.com/j-erdweg-longtermhealth/biomarker-bluttest';
+
+  function openCalendlyModal() {
+    debug.log('Opening Calendly modal');
+
+    let overlay = document.getElementById('calendly-modal-overlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      setTimeout(() => { overlay.style.opacity = '1'; }, 10);
+      return;
+    }
+
+    overlay = document.createElement('div');
+    overlay.id = 'calendly-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s;';
+
+    const box = document.createElement('div');
+    box.style.cssText = 'background:#fff;border-radius:12px;width:90vw;max-width:700px;height:85vh;max-height:750px;position:relative;overflow:hidden;';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = 'position:absolute;top:12px;right:16px;z-index:10;background:none;border:none;font-size:20px;cursor:pointer;color:#333;';
+    closeBtn.addEventListener('click', closeCalendlyModal);
+
+    const iframe = document.createElement('iframe');
+    const user = getCurrentUser();
+    let url = CALENDLY_URL + '?hide_gdpr_banner=1';
+    if (user) {
+      if (user.name) url += '&name=' + encodeURIComponent(user.name);
+      if (user.email) url += '&email=' + encodeURIComponent(user.email);
+    }
+    iframe.src = url;
+    iframe.style.cssText = 'width:100%;height:100%;border:none;';
+
+    box.appendChild(closeBtn);
+    box.appendChild(iframe);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeCalendlyModal();
+    });
+
+    setTimeout(() => { overlay.style.opacity = '1'; }, 10);
+  }
+
+  function closeCalendlyModal() {
+    const overlay = document.getElementById('calendly-modal-overlay');
+    if (!overlay) return;
+    overlay.style.opacity = '0';
+    setTimeout(() => { overlay.style.display = 'none'; }, 300);
+    debug.log('Calendly modal closed');
+  }
+
+  // ========================================
+  // LOGOUT HANDLER
+  // ========================================
+  function setupLogoutHandlers() {
+    document.addEventListener('click', (e) => {
+      const logoutBtn = e.target.closest('[data-auth-logout]');
+      if (!logoutBtn) return;
+      e.preventDefault();
+      logout();
+      updateAuthUI();
+      showNotification('Erfolgreich abgemeldet', 'info');
+      debug.log('User logged out via button');
+    });
+  }
+
+  // ========================================
   // INITIALIZATION
   // ========================================
   function init() {
     debug.log('Initializing global auth module');
 
     setupAuthHandlers();
+    setupLogoutHandlers();
     updateAuthUI();
 
     // Expose global API
@@ -735,6 +809,8 @@
       logout,
       openModal,
       closeModal,
+      openCalendly: openCalendlyModal,
+      closeCalendly: closeCalendlyModal,
       updateUI: updateAuthUI,
     };
 
