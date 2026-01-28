@@ -327,6 +327,7 @@
         const user = window.Auth ? window.Auth.getCurrentUser() : null;
 
         const bookingData = {
+          user_id: user?.id || localStorage.getItem('userId') || '',
           name: user?.name || 'Guest',
           email: user?.email || '',
           practice: practiceSelect?.options?.[practiceSelect.selectedIndex]?.text || practice,

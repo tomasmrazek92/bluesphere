@@ -835,15 +835,7 @@
         debug.log('Booking data:', bookingData);
         localStorage.setItem('lastBooking', JSON.stringify(bookingData));
 
-        // POST to backend
-        apiCall('/biomarker-appointment', {
-          method: 'POST',
-          body: JSON.stringify(bookingData),
-        }).then(() => {
-          debug.log('Booking sent to backend');
-        }).catch((err) => {
-          debug.error('Failed to send booking to backend:', err);
-        });
+        // Booking webhook is handled by deine-bestellung.js
 
         setTimeout(() => {
           closeCalendlyModal();
