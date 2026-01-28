@@ -282,11 +282,31 @@
     );
   }
 
-  // Calendly event listener
+  // Calendly event listener - log ALL postMessages from Calendly
   window.addEventListener('message', (e) => {
-    if (e.data.event === 'calendly.event_scheduled') {
-      debug.log('Booking completed');
+    // Log all Calendly-related messages
+    if (e.origin && e.origin.includes('calendly')) {
+      debug.log('Calendly postMessage received:', {
+        origin: e.origin,
+        event: e.data?.event,
+        data: e.data,
+      });
+    }
+
+    if (e.data?.event === 'calendly.event_scheduled') {
+      debug.log('Booking completed!');
       const booking = JSON.parse(sessionStorage.getItem('pending_booking') || '{}');
+      debug.log('Booking data from session:', booking);
+
+      const payload = {
+        event_type: 'blood_test_booked',
+        event_data: {
+          ...booking,
+          calendly_event: e.data?.payload || {},
+        },
+      };
+      debug.log('Sending webhook payload:', payload);
+      debug.log('Webhook URL:', CONFIG.WEBHOOK_DEV);
 
       // Send to webhook
       fetch(CONFIG.WEBHOOK_DEV, {
@@ -295,11 +315,14 @@
           'Content-Type': 'application/json',
           'X-API-Key': CONFIG.WEBHOOK_KEY_DEV,
         },
-        body: JSON.stringify({
-          event_type: 'blood_test_booked',
-          event_data: booking,
-        }),
-      }).catch((err) => debug.error('Webhook error:', err));
+        body: JSON.stringify(payload),
+      })
+        .then((res) => {
+          debug.log('Webhook response:', res.status, res.statusText);
+          return res.text();
+        })
+        .then((body) => debug.log('Webhook response body:', body))
+        .catch((err) => debug.error('Webhook error:', err));
 
       if (window.CartModal) {
         window.CartModal.clear();
