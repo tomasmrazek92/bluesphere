@@ -197,14 +197,64 @@
       </div>`;
     document.body.appendChild(container);
 
-    // Use direct iframe - avoids Cookiebot blocking the Calendly widget script
     const widgetEl = container.querySelector('.calendly-inline-widget');
-    const iframe = document.createElement('iframe');
-    iframe.src = url;
-    iframe.style.cssText = 'width:100%;height:100%;border:none;';
-    iframe.setAttribute('frameborder', '0');
-    widgetEl.appendChild(iframe);
-    debug.log('Calendly iframe injected:', url);
+    debug.log('Calendly widget container ready, loading widget.js...');
+
+    function initWidget() {
+      debug.log('Calling Calendly.initInlineWidget, window.Calendly:', !!window.Calendly);
+      try {
+        window.Calendly.initInlineWidget({
+          url: url,
+          parentElement: widgetEl,
+          prefill: { name: data.name, email: data.email },
+        });
+        debug.log('Calendly.initInlineWidget called successfully');
+      } catch (err) {
+        debug.error('Calendly.initInlineWidget failed:', err);
+        // Fallback to direct iframe
+        debug.log('Falling back to direct iframe');
+        const iframe = document.createElement('iframe');
+        iframe.src = url;
+        iframe.style.cssText = 'width:100%;height:100%;border:none;';
+        widgetEl.appendChild(iframe);
+      }
+    }
+
+    if (window.Calendly) {
+      initWidget();
+    } else {
+      // Load Calendly widget CSS
+      if (!document.querySelector('link[href*="assets.calendly.com"]')) {
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = 'https://assets.calendly.com/assets/external/widget.css';
+        document.head.appendChild(css);
+      }
+
+      // Load Calendly widget JS
+      const script = document.createElement('script');
+      script.src = 'https://assets.calendly.com/assets/external/widget.js';
+      script.type = 'text/javascript';
+      script.async = true;
+      script.setAttribute('data-cookieconsent', 'ignore');
+      script.onload = () => {
+        debug.log('Calendly widget.js loaded, window.Calendly:', !!window.Calendly);
+        if (window.Calendly) {
+          initWidget();
+        } else {
+          debug.error('widget.js loaded but window.Calendly still undefined');
+        }
+      };
+      script.onerror = (err) => {
+        debug.error('Failed to load Calendly widget.js:', err);
+        // Fallback to direct iframe
+        const iframe = document.createElement('iframe');
+        iframe.src = url;
+        iframe.style.cssText = 'width:100%;height:100%;border:none;';
+        widgetEl.appendChild(iframe);
+      };
+      document.head.appendChild(script);
+    }
   }
 
   // ========================================
