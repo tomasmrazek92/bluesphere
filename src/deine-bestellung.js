@@ -172,8 +172,13 @@
   // CALENDLY
   // ========================================
   function buildCalendlyUrl(data) {
+    const nameParts = (data.name || '').trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
     const params = new URLSearchParams({
-      name: data.name,
+      first_name: firstName,
+      last_name: lastName,
       email: data.email,
       a1: `Praxis: ${data.practice}`,
       a2: `Preis: €${fmt(data.total)}`,
@@ -203,10 +208,15 @@
     function initWidget() {
       debug.log('Calling Calendly.initInlineWidget, window.Calendly:', !!window.Calendly);
       try {
+        const nameParts = (data.name || '').trim().split(/\s+/);
         window.Calendly.initInlineWidget({
           url: url,
           parentElement: widgetEl,
-          prefill: { name: data.name, email: data.email },
+          prefill: {
+            firstName: nameParts[0] || '',
+            lastName: nameParts.slice(1).join(' ') || '',
+            email: data.email,
+          },
         });
         debug.log('Calendly.initInlineWidget called successfully');
       } catch (err) {
