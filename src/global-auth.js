@@ -162,20 +162,32 @@
     const data = await response.json();
     debug.log('Login response:', data);
 
-    const user = data.result?.user || data.user || data;
+    const result = data.result || data;
+    const user = result.user || result;
+    const token = result.token || result.accessToken || data.token || data.accessToken;
+    const refreshToken = result.refreshToken || data.refreshToken;
 
-    if (data.token || data.accessToken) {
-      SecureStorage.set(AUTH_CONFIG.TOKEN_KEY, data.token || data.accessToken);
+    if (token) {
+      SecureStorage.set(AUTH_CONFIG.TOKEN_KEY, token);
+      debug.log('Token stored');
+    } else {
+      debug.log('Warning: No token in login response');
     }
-    if (data.refreshToken) {
-      SecureStorage.set(AUTH_CONFIG.REFRESH_KEY, data.refreshToken, 60 * 24 * 7);
+    if (refreshToken) {
+      SecureStorage.set(AUTH_CONFIG.REFRESH_KEY, refreshToken, 60 * 24 * 7);
     }
 
-    SecureStorage.set(AUTH_CONFIG.USER_KEY, {
+    const userData = {
       name: user.firstName ? `${user.firstName} ${user.lastName}` : user.name,
-      email: user.email,
+      email: user.email || email,
       id: user.id,
-    });
+    };
+    SecureStorage.set(AUTH_CONFIG.USER_KEY, userData);
+
+    // Also store in localStorage for cross-page access (Calendly, booking flow)
+    localStorage.setItem('userName', userData.name);
+    localStorage.setItem('userEmail', userData.email);
+    localStorage.setItem('userId', String(userData.id));
 
     debug.log('Login successful');
     window.dispatchEvent(new CustomEvent('auth-changed', { detail: { authenticated: true } }));
@@ -230,7 +242,7 @@
   function isAuthenticated() {
     const token = SecureStorage.get(AUTH_CONFIG.TOKEN_KEY);
     const userData = SecureStorage.get(AUTH_CONFIG.USER_KEY);
-    return !!(token && userData);
+    return !!(token || userData);
   }
 
   function getCurrentUser() {
@@ -241,6 +253,9 @@
     SecureStorage.remove(AUTH_CONFIG.TOKEN_KEY);
     SecureStorage.remove(AUTH_CONFIG.REFRESH_KEY);
     SecureStorage.remove(AUTH_CONFIG.USER_KEY);
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userId');
     window.dispatchEvent(new CustomEvent('auth-changed', { detail: { authenticated: false } }));
     debug.log('User logged out');
   }
@@ -724,10 +739,19 @@
   function openCalendlyModal() {
     debug.log('Opening Calendly modal');
 
+    // Get user data from session or localStorage
+    const user = getCurrentUser();
+    const userName = user?.name || localStorage.getItem('userName') || '';
+    const userEmail = user?.email || localStorage.getItem('userEmail') || '';
+
     let overlay = document.getElementById('calendly-modal-overlay');
     if (overlay) {
+      // Rebuild widget with fresh user data
+      const container = document.getElementById('calendly-embed-container');
+      if (container) container.innerHTML = '';
       overlay.style.display = 'flex';
       setTimeout(() => { overlay.style.opacity = '1'; }, 10);
+      injectCalendlyWidget(userName, userEmail);
       return;
     }
 
@@ -739,22 +763,16 @@
     box.style.cssText = 'background:#fff;border-radius:12px;width:90vw;max-width:700px;height:85vh;max-height:750px;position:relative;overflow:hidden;';
 
     const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕';
+    closeBtn.textContent = '\u2715';
     closeBtn.style.cssText = 'position:absolute;top:12px;right:16px;z-index:10;background:none;border:none;font-size:20px;cursor:pointer;color:#333;';
     closeBtn.addEventListener('click', closeCalendlyModal);
 
-    const iframe = document.createElement('iframe');
-    const user = getCurrentUser();
-    let url = CALENDLY_URL + '?hide_gdpr_banner=1';
-    if (user) {
-      if (user.name) url += '&name=' + encodeURIComponent(user.name);
-      if (user.email) url += '&email=' + encodeURIComponent(user.email);
-    }
-    iframe.src = url;
-    iframe.style.cssText = 'width:100%;height:100%;border:none;';
+    const container = document.createElement('div');
+    container.id = 'calendly-embed-container';
+    container.style.cssText = 'width:100%;height:100%;';
 
     box.appendChild(closeBtn);
-    box.appendChild(iframe);
+    box.appendChild(container);
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
@@ -763,6 +781,76 @@
     });
 
     setTimeout(() => { overlay.style.opacity = '1'; }, 10);
+
+    injectCalendlyWidget(userName, userEmail);
+    setupCalendlyListener();
+  }
+
+  function injectCalendlyWidget(name, email) {
+    const container = document.getElementById('calendly-embed-container');
+    if (!container) return;
+
+    let url = CALENDLY_URL + '?hide_gdpr_banner=1';
+    if (name) url += '&name=' + encodeURIComponent(name);
+    if (email) url += '&email=' + encodeURIComponent(email);
+
+    const widget = document.createElement('div');
+    widget.className = 'calendly-inline-widget';
+    widget.setAttribute('data-url', url);
+    widget.style.cssText = 'min-width:100%;height:100%;';
+    container.appendChild(widget);
+
+    // Load Calendly widget script
+    if (!document.querySelector('script[src*="assets.calendly.com"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://assets.calendly.com/assets/external/widget.js';
+      script.async = true;
+      document.body.appendChild(script);
+    } else if (window.Calendly) {
+      window.Calendly.initInlineWidget({
+        url: url,
+        parentElement: container,
+      });
+    }
+
+    debug.log('Calendly widget injected with name:', name, 'email:', email);
+  }
+
+  function setupCalendlyListener() {
+    window.addEventListener('message', (e) => {
+      if (e.origin !== 'https://calendly.com') return;
+      if (e.data?.event === 'calendly.event_scheduled') {
+        debug.log('Calendly event scheduled:', e.data);
+
+        const user = getCurrentUser();
+        const bookingData = {
+          userId: user?.id || localStorage.getItem('userId'),
+          userName: user?.name || localStorage.getItem('userName'),
+          userEmail: user?.email || localStorage.getItem('userEmail'),
+          eventUri: e.data.payload?.event?.uri,
+          inviteeUri: e.data.payload?.invitee?.uri,
+          scheduledAt: new Date().toISOString(),
+        };
+
+        debug.log('Booking data:', bookingData);
+        localStorage.setItem('lastBooking', JSON.stringify(bookingData));
+
+        // POST to backend
+        apiCall('/biomarker-appointment', {
+          method: 'POST',
+          body: JSON.stringify(bookingData),
+        }).then(() => {
+          debug.log('Booking sent to backend');
+        }).catch((err) => {
+          debug.error('Failed to send booking to backend:', err);
+        });
+
+        setTimeout(() => {
+          closeCalendlyModal();
+          showNotification('Termin erfolgreich gebucht!', 'success');
+        }, 1500);
+      }
+    });
   }
 
   function closeCalendlyModal() {
