@@ -166,35 +166,7 @@
     },
 
     updateSubmitButtonState: function () {
-      const waitlistForm = document.querySelector('#wf-form-Waitlist-Form');
-      const isActualWaitlistForm =
-        waitlistForm &&
-        (waitlistForm.querySelector('input[name="Postleitzahl"], input[name="zip"]') ||
-          waitlistForm.querySelector(
-            'select[name="gender"], select[name="Gender"], select[name="Geschlecht"]'
-          ) ||
-          waitlistForm.querySelector('#country, select[name="country"]'));
-
-      if (waitlistForm && isActualWaitlistForm) {
-        const submitButton = waitlistForm.querySelector(
-          'input[type="submit"], button[type="submit"], .w-button'
-        );
-        if (submitButton) {
-          if (!this.ZIP_IS_VALID) {
-            submitButton.disabled = true;
-            submitButton.style.opacity = '0.5';
-            submitButton.style.cursor = 'not-allowed';
-            submitButton.setAttribute('data-disabled-reason', 'invalid-zip');
-          } else {
-            if (!submitButton.hasAttribute('data-submitting')) {
-              submitButton.disabled = false;
-              submitButton.style.opacity = '1';
-              submitButton.style.cursor = 'pointer';
-              submitButton.removeAttribute('data-disabled-reason');
-            }
-          }
-        }
-      }
+      // No-op: submit button state is now managed solely by FormState.checkFormValidity()
     },
   };
 
@@ -209,11 +181,11 @@
     countryValid: false,
 
     checkFormValidity: function () {
-      const forms = document.querySelectorAll('#wf-form-Waitlist-Form');
-      const self = this;
+      var forms = document.querySelectorAll('#wf-form-Waitlist-Form');
+      var self = this;
 
       forms.forEach(function (form) {
-        const isActualWaitlistForm =
+        var isActualWaitlistForm =
           form.querySelector('input[name="Postleitzahl"], input[name="zip"]') ||
           form.querySelector(
             'select[name="gender"], select[name="Gender"], select[name="Geschlecht"]'
@@ -222,16 +194,25 @@
 
         if (!isActualWaitlistForm) return;
 
-        const submitButton = form.querySelector(
+        var submitButton = form.querySelector(
           'input[type="submit"], button[type="submit"], .w-button'
         );
-        if (submitButton) {
-          const canSubmit =
+        if (submitButton && !submitButton.hasAttribute('data-submitting')) {
+          var canSubmit =
             self.emailValid &&
             self.zipValid &&
             self.genderValid &&
             self.gdprValid &&
             self.countryValid;
+
+          debug('checkFormValidity:', {
+            email: self.emailValid,
+            zip: self.zipValid,
+            gender: self.genderValid,
+            gdpr: self.gdprValid,
+            country: self.countryValid,
+            canSubmit: canSubmit,
+          });
 
           submitButton.disabled = !canSubmit;
           submitButton.style.opacity = canSubmit ? '1' : '0.6';
@@ -245,21 +226,21 @@
   // ZIP VALIDATION LOGIC
   // ========================================
   function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        timeout = null;
-        func.apply(this, args);
-      };
+    var timeout;
+    return function () {
+      var context = this;
+      var args = arguments;
       clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
+      timeout = setTimeout(function () {
+        func.apply(context, args);
+      }, wait);
     };
   }
 
   function updateFieldState(input, state, errorMessage, countryRules) {
-    const formField = input.closest('.form_field');
-    const fieldWrap = formField ? formField.closest('.form_field-wrap') : null;
-    const validationMsg = fieldWrap ? fieldWrap.querySelector('.form_validation') : null;
+    var formField = input.closest('.form_field');
+    var fieldWrap = formField ? formField.closest('.form_field-wrap') : null;
+    var validationMsg = fieldWrap ? fieldWrap.querySelector('.form_validation') : null;
 
     input.classList.remove('zip-validating', 'zip-valid', 'zip-invalid');
     if (formField) formField.classList.remove('error');
@@ -284,13 +265,13 @@
         if (formField) formField.classList.add('error');
 
         if (validationMsg && (errorMessage || countryRules)) {
-          let message = errorMessage;
+          var message = errorMessage;
           if (!message && countryRules && countryRules.format) {
-            const countrySelect = document.querySelector(
+            var countrySelect = document.querySelector(
               '#country, select[name="country"], select[name="Country"]'
             );
-            const selectedCountry = countrySelect ? countrySelect.value : '';
-            const translatedFormat = translateZipFormat(countryRules.format);
+            var selectedCountry = countrySelect ? countrySelect.value : '';
+            var translatedFormat = translateZipFormat(countryRules.format);
             message = FormValidator.getErrorMessage('zip_invalid')
               .replace('{country}', selectedCountry || '')
               .replace('{format}', translatedFormat);
@@ -314,10 +295,10 @@
       return;
     }
 
-    const countrySelect = document.querySelector(
+    var countrySelect = document.querySelector(
       '#country, select[name="country"], select[name="Country"]'
     );
-    const selectedCountry = countrySelect ? countrySelect.value : '';
+    var selectedCountry = countrySelect ? countrySelect.value : '';
 
     if (!selectedCountry) {
       if (showError) {
@@ -326,7 +307,7 @@
       return;
     }
 
-    const countryRules = zipPatterns[selectedCountry];
+    var countryRules = zipPatterns[selectedCountry];
 
     if (!countryRules) {
       updateFieldState(input, 'valid');
@@ -336,10 +317,10 @@
       return;
     }
 
-    let isValid = countryRules.pattern.test(zipValue);
+    var isValid = countryRules.pattern.test(zipValue);
 
     if (isValid && countryRules.min && countryRules.max) {
-      const numericValue = parseInt(zipValue);
+      var numericValue = parseInt(zipValue, 10);
       isValid = numericValue >= countryRules.min && numericValue <= countryRules.max;
     }
 
@@ -359,7 +340,7 @@
   }
 
   function setupZipValidation() {
-    const zipInputs = document.querySelectorAll(
+    var zipInputs = document.querySelectorAll(
       'input[name="Postleitzahl"], input[id="Postleitzahl"], input[name="zip"], input[name="Zip"], input[name="ZIP"], input[id="zip"], input[id="Zip"], input[placeholder*="zip" i], input[placeholder*="postleitzahl" i], input[placeholder*="postal" i]'
     );
 
@@ -378,12 +359,12 @@
         FormState.checkFormValidity();
       }
 
-      const debouncedValidation = debounce(function () {
+      var debouncedValidation = debounce(function () {
         validateZipCode(zipInput, zipInput.value.trim(), false, false);
       }, 500);
 
       zipInput.addEventListener('input', function (e) {
-        const value = e.target.value.trim();
+        var value = e.target.value.trim();
         if (value) {
           updateFieldState(zipInput, 'typing');
           debouncedValidation();
@@ -396,7 +377,7 @@
       });
 
       zipInput.addEventListener('blur', function (e) {
-        const value = e.target.value.trim();
+        var value = e.target.value.trim();
         if (value) {
           validateZipCode(zipInput, value, true, true);
         } else {
@@ -410,7 +391,7 @@
     });
 
     // Country change handler
-    const countrySelect = document.querySelector(
+    var countrySelect = document.querySelector(
       '#country, select[name="country"], select[name="Country"]'
     );
     if (countrySelect) {
@@ -429,150 +410,178 @@
   }
 
   // ========================================
+  // HELPERS: Read select values across all forms
+  // ========================================
+  function findGenderValue() {
+    var selects = document.querySelectorAll(
+      'select[name="gender"], select[name="Gender"], select[name="Geschlecht"]'
+    );
+    for (var i = 0; i < selects.length; i++) {
+      if (selects[i].value && selects[i].value !== '') return selects[i].value;
+    }
+    return '';
+  }
+
+  function findCountryValue() {
+    var selects = document.querySelectorAll(
+      '#country, select[name="country"], select[name="Country"]'
+    );
+    for (var i = 0; i < selects.length; i++) {
+      if (selects[i].value && selects[i].value !== '') return selects[i].value;
+    }
+    return '';
+  }
+
+  function refreshSelectStates() {
+    var gv = findGenderValue();
+    var cv = findCountryValue();
+    FormState.genderValid = gv !== '';
+    FormState.countryValid = cv !== '';
+    FormState.checkFormValidity();
+  }
+
+  // ========================================
   // WAITLIST FORM FIELD VALIDATION
   // ========================================
   function setupWaitlistFormValidation() {
-    const waitlistForm = document.querySelector('#wf-form-Waitlist-Form');
-    const isActualWaitlistForm =
-      waitlistForm &&
-      (waitlistForm.querySelector('input[name="Postleitzahl"], input[name="zip"]') ||
-        waitlistForm.querySelector(
+    var waitlistForms = document.querySelectorAll('#wf-form-Waitlist-Form');
+    var foundActualForm = false;
+
+    waitlistForms.forEach(function (form) {
+      var isActual =
+        form.querySelector('input[name="Postleitzahl"], input[name="zip"]') ||
+        form.querySelector(
           'select[name="gender"], select[name="Gender"], select[name="Geschlecht"]'
         ) ||
-        waitlistForm.querySelector('#country, select[name="country"]'));
+        form.querySelector('#country, select[name="country"]');
 
-    if (!waitlistForm || !isActualWaitlistForm) return;
+      if (!isActual) return;
+      foundActualForm = true;
 
-    // Email validation
-    const emailInputs = waitlistForm.querySelectorAll(
-      'input[type="email"], input[name="email"], input[name="Email"]'
-    );
-    emailInputs.forEach(function (emailInput) {
-      FormState.emailValid = emailInput.value && emailInput.value.includes('@');
-      FormState.checkFormValidity();
+      // Email validation
+      var emailInputs = form.querySelectorAll(
+        'input[type="email"], input[name="email"], input[name="Email"]'
+      );
+      emailInputs.forEach(function (emailInput) {
+        emailInput.addEventListener('input', function (e) {
+          FormState.emailValid = e.target.value && e.target.value.includes('@');
+          FormState.checkFormValidity();
+        });
 
-      emailInput.addEventListener('input', function (e) {
-        FormState.emailValid = e.target.value && e.target.value.includes('@');
-        FormState.checkFormValidity();
-      });
-
-      emailInput.addEventListener('blur', function (e) {
-        const fieldWrap = e.target.closest('.form_field-wrap') || e.target.closest('.form_field');
-        if (fieldWrap) {
-          const validationMsg = fieldWrap.querySelector('.form_validation');
-          if (validationMsg) {
-            if (!e.target.value) {
-              validationMsg.textContent = FormValidator.getErrorMessage('email_required');
-              validationMsg.classList.add('show');
-            } else if (!e.target.value.includes('@')) {
-              validationMsg.textContent = isEnglishSite()
-                ? 'Please enter a valid email address'
-                : 'Bitte geben Sie eine gültige E-Mail-Adresse ein';
-              validationMsg.classList.add('show');
-            } else {
-              validationMsg.classList.remove('show');
+        emailInput.addEventListener('blur', function (e) {
+          var fieldWrap = e.target.closest('.form_field-wrap') || e.target.closest('.form_field');
+          if (fieldWrap) {
+            var validationMsg = fieldWrap.querySelector('.form_validation');
+            if (validationMsg) {
+              if (!e.target.value) {
+                validationMsg.textContent = FormValidator.getErrorMessage('email_required');
+                validationMsg.classList.add('show');
+              } else if (!e.target.value.includes('@')) {
+                validationMsg.textContent = isEnglishSite()
+                  ? 'Please enter a valid email address'
+                  : 'Bitte geben Sie eine gültige E-Mail-Adresse ein';
+                validationMsg.classList.add('show');
+              } else {
+                validationMsg.classList.remove('show');
+              }
             }
           }
-        }
+        });
+
+        // Set initial state
+        FormState.emailValid = emailInput.value && emailInput.value.includes('@');
+      });
+
+      // GDPR Checkbox validation
+      var gdprCheckbox = form.querySelector('input[type="checkbox"][name="checkbox"]');
+      if (gdprCheckbox) {
+        FormState.gdprValid = gdprCheckbox.checked;
+
+        gdprCheckbox.addEventListener('change', function (e) {
+          FormState.gdprValid = e.target.checked;
+
+          var fieldWrap = e.target.closest('.form_field-wrap');
+          if (fieldWrap) {
+            var validationMsg = fieldWrap.querySelector('.form_validation');
+            if (validationMsg) {
+              if (!e.target.checked) {
+                validationMsg.classList.add('show');
+              } else {
+                validationMsg.classList.remove('show');
+              }
+            }
+          }
+
+          FormState.checkFormValidity();
+        });
+      }
+
+      // Native change events on gender selects (in case they fire)
+      var genderSelects = form.querySelectorAll(
+        'select[name="gender"], select[name="Gender"], select[name="Geschlecht"]'
+      );
+      genderSelects.forEach(function (sel) {
+        sel.addEventListener('change', function () {
+          refreshSelectStates();
+        });
+      });
+
+      // Native change events on country selects (in case they fire)
+      var countrySelects = form.querySelectorAll(
+        '#country, select[name="country"], select[name="Country"]'
+      );
+      countrySelects.forEach(function (sel) {
+        sel.addEventListener('change', function () {
+          refreshSelectStates();
+        });
       });
     });
 
-    // GDPR Checkbox validation
-    const gdprCheckbox = waitlistForm.querySelector('input[type="checkbox"][name="checkbox"]');
-    if (gdprCheckbox) {
-      FormState.gdprValid = gdprCheckbox.checked;
-
-      gdprCheckbox.addEventListener('change', function (e) {
-        FormState.gdprValid = e.target.checked;
-
-        const validationMsg = e.target.closest('.form_field-wrap')?.querySelector('.form_validation');
-        if (validationMsg) {
-          if (!e.target.checked) {
-            validationMsg.classList.add('show');
-          } else {
-            validationMsg.classList.remove('show');
-          }
-        }
-
-        FormState.checkFormValidity();
-      });
+    if (!foundActualForm) {
+      debug('No actual waitlist form found');
+      return;
     }
 
-    // Helper: find the best gender/country value across all forms
-    function findGenderValue() {
-      var selectors = 'select[name="gender"], select[name="Gender"], select[name="Geschlecht"]';
-      var selects = document.querySelectorAll(selectors);
-      for (var i = 0; i < selects.length; i++) {
-        if (selects[i].value && selects[i].value !== '') return selects[i].value;
+    // ========================================
+    // EVENT DELEGATION for nice-select clicks
+    // Nice-select replaces <select> with custom divs.
+    // Native change events do NOT fire. We must use
+    // document-level delegation since nice-select .list
+    // elements may not exist yet at init time.
+    // ========================================
+    document.addEventListener('click', function (e) {
+      var li = e.target.closest('.nice-select .list li');
+      if (li) {
+        // nice-select updates the underlying <select> after a short delay
+        setTimeout(refreshSelectStates, 150);
       }
-      return '';
-    }
+    });
 
-    function findCountryValue() {
-      var selectors = '#country, select[name="country"], select[name="Country"]';
-      var selects = document.querySelectorAll(selectors);
-      for (var i = 0; i < selects.length; i++) {
-        if (selects[i].value && selects[i].value !== '') return selects[i].value;
-      }
-      return '';
-    }
-
-    function refreshSelectStates() {
+    // ========================================
+    // POLLING: Catch any select value changes that
+    // bypass events entirely (e.g. programmatic updates,
+    // jQuery .val() calls, or nice-select edge cases).
+    // Polls every 500ms, lightweight since it just reads
+    // a few select values.
+    // ========================================
+    var lastGender = '';
+    var lastCountry = '';
+    setInterval(function () {
       var gv = findGenderValue();
       var cv = findCountryValue();
-      FormState.genderValid = gv !== '';
-      FormState.countryValid = cv !== '';
-      FormState.checkFormValidity();
-    }
-
-    // Gender select validation
-    var allGenderSelects = document.querySelectorAll(
-      'select[name="gender"], select[name="Gender"], select[name="Geschlecht"]'
-    );
-    allGenderSelects.forEach(function (genderSelect) {
-      genderSelect.addEventListener('change', function (e) {
-        FormState.genderValid = e.target.value && e.target.value !== '';
-
-        var fieldWrap = e.target.closest('.form_field');
-        if (fieldWrap) {
-          var validationMsg = fieldWrap.querySelector('.form_validation');
-          if (validationMsg) {
-            if (!e.target.value) {
-              validationMsg.classList.add('show');
-            } else {
-              validationMsg.classList.remove('show');
-            }
-          }
-        }
-
+      if (gv !== lastGender || cv !== lastCountry) {
+        lastGender = gv;
+        lastCountry = cv;
+        debug('Polling detected select change - gender:', gv, 'country:', cv);
+        FormState.genderValid = gv !== '';
+        FormState.countryValid = cv !== '';
         FormState.checkFormValidity();
-      });
-    });
-
-    // Country select validation
-    var allCountrySelects = document.querySelectorAll(
-      '#country, select[name="country"], select[name="Country"]'
-    );
-    allCountrySelects.forEach(function (countrySelect) {
-      countrySelect.addEventListener('change', function (e) {
-        FormState.countryValid = e.target.value && e.target.value !== '';
-        FormState.checkFormValidity();
-      });
-    });
-
-    // Nice-select click handlers — listen on ALL nice-select lists on the page
-    var allNiceSelectLists = document.querySelectorAll('.nice-select .list');
-    allNiceSelectLists.forEach(function (list) {
-      list.addEventListener('click', function (e) {
-        var li = e.target.closest('li');
-        if (li) {
-          setTimeout(refreshSelectStates, 100);
-        }
-      });
-    });
+      }
+    }, 500);
 
     // Set initial state
     refreshSelectStates();
+    FormState.checkFormValidity();
   }
 
   // ========================================
@@ -582,7 +591,7 @@
     debug('Initializing global form validation');
 
     // Hide success modals initially
-    const allSuccessModals = document.querySelectorAll(
+    var allSuccessModals = document.querySelectorAll(
       '.w-form-done, .form_modal-form-sucess, .form-success-message'
     );
     allSuccessModals.forEach(function (modal) {
