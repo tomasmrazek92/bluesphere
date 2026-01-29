@@ -459,7 +459,7 @@
 
   function setupCartTriggers() {
     const triggers = $$(
-      '[data-cart-trigger], [data-cart="open"], .cart-icon, .cart-trigger, [href="#cart"]'
+      '[data-cart-trigger], [data-cart="open"], .cart-icon, .cart-trigger, .nav_cart, [href="#cart"]'
     );
 
     triggers.forEach((trigger) => {
@@ -475,7 +475,7 @@
 
     // Delegated listener for cart open triggers
     document.addEventListener('click', (e) => {
-      const cartIcon = e.target.closest('[data-cart-trigger], [data-open-cart]');
+      const cartIcon = e.target.closest('[data-cart-trigger], [data-open-cart], .nav_cart');
       if (cartIcon) {
         e.preventDefault();
         e.stopPropagation();
