@@ -331,6 +331,7 @@
     if (!countryRules) {
       updateFieldState(input, 'valid');
       FormState.zipValid = true;
+      FormValidator.ZIP_IS_VALID = true;
       FormState.checkFormValidity();
       return;
     }
@@ -344,9 +345,11 @@
 
     if (isValid) {
       FormState.zipValid = true;
+      FormValidator.ZIP_IS_VALID = true;
       updateFieldState(input, 'valid');
     } else {
       FormState.zipValid = false;
+      FormValidator.ZIP_IS_VALID = false;
       if (showError) {
         updateFieldState(input, 'invalid', null, countryRules);
       }
@@ -371,6 +374,7 @@
         validateZipCode(zipInput, zipInput.value.trim(), false, false);
       } else {
         FormState.zipValid = false;
+        FormValidator.ZIP_IS_VALID = false;
         FormState.checkFormValidity();
       }
 
@@ -385,6 +389,7 @@
           debouncedValidation();
         } else {
           FormState.zipValid = false;
+          FormValidator.ZIP_IS_VALID = false;
           FormState.checkFormValidity();
           updateFieldState(zipInput, 'empty');
         }
@@ -396,6 +401,7 @@
           validateZipCode(zipInput, value, true, true);
         } else {
           FormState.zipValid = false;
+          FormValidator.ZIP_IS_VALID = false;
           FormState.checkFormValidity();
         }
       });
@@ -572,10 +578,8 @@
     // Setup validation
     setupWaitlistFormValidation();
 
-    // Delayed ZIP validation setup
-    setTimeout(function () {
-      setupZipValidation();
-    }, 1500);
+    // ZIP validation setup
+    setupZipValidation();
 
     // Expose globals
     window.zipPatterns = zipPatterns;
@@ -583,23 +587,29 @@
     window.FormState = FormState;
 
     // Backward compatibility
-    Object.defineProperty(window, 'FORM_ZIP_IS_VALID', {
-      get: function () {
-        return FormValidator.ZIP_IS_VALID;
-      },
-      set: function (val) {
-        FormValidator.ZIP_IS_VALID = val;
-      },
-    });
+    try {
+      Object.defineProperty(window, 'FORM_ZIP_IS_VALID', {
+        configurable: true,
+        get: function () {
+          return FormValidator.ZIP_IS_VALID;
+        },
+        set: function (val) {
+          FormValidator.ZIP_IS_VALID = val;
+        },
+      });
+    } catch (e) { /* already defined */ }
 
-    Object.defineProperty(window, 'FORM_CAN_SUBMIT', {
-      get: function () {
-        return FormValidator.CAN_SUBMIT;
-      },
-      set: function (val) {
-        FormValidator.CAN_SUBMIT = val;
-      },
-    });
+    try {
+      Object.defineProperty(window, 'FORM_CAN_SUBMIT', {
+        configurable: true,
+        get: function () {
+          return FormValidator.CAN_SUBMIT;
+        },
+        set: function (val) {
+          FormValidator.CAN_SUBMIT = val;
+        },
+      });
+    } catch (e) { /* already defined */ }
 
     // Expose utility functions
     window.isEnglishSite = isEnglishSite;
