@@ -599,7 +599,9 @@
           showNotification('Anmeldung erfolgreich!', 'success');
           closeModal();
           updateAuthUI();
-          openCalendlyModal();
+          if (!window.location.pathname.includes('/deine-bestellung')) {
+            openCalendlyModal();
+          }
         } catch (error) {
           debug.error('Login error:', error);
           showFormError(form, error.message);

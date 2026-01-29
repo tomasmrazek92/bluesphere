@@ -169,71 +169,73 @@
   }
 
   // ========================================
-  // CALENDLY
+  // INLINE CALENDLY
   // ========================================
-  function buildCalendlyUrl(data) {
-    const nameParts = (data.name || '').trim().split(/\s+/);
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
+  let calendlyInjected = false;
 
-    const params = new URLSearchParams({
-      first_name: firstName,
-      last_name: lastName,
-      email: data.email,
-      a1: `Praxis: ${data.practice}`,
-      a2: `Preis: €${fmt(data.total)}`,
-      a3: `Pakete: ${data.packages}`,
-    });
-    return `${CONFIG.CALENDLY_BASE_URL}?${params}`;
+  function updateAppointmentSection() {
+    const headline = $('#choose-appointment-headline');
+    const widgetContainer = $('.w-embed.w-iframe');
+    const isAuth = window.Auth && window.Auth.isAuthenticated();
+
+    debug.log('updateAppointmentSection, authenticated:', isAuth);
+
+    if (headline) headline.style.display = isAuth ? '' : 'none';
+    if (widgetContainer) widgetContainer.style.display = isAuth ? '' : 'none';
+
+    if (isAuth && widgetContainer && !calendlyInjected) {
+      injectInlineCalendly(widgetContainer);
+      calendlyInjected = true;
+    }
+
+    if (!isAuth && widgetContainer) {
+      widgetContainer.innerHTML = '';
+      calendlyInjected = false;
+    }
   }
 
-  function showCalendly(url, data) {
-    const container = document.createElement('div');
-    container.id = 'calendly-container';
-    container.style.cssText =
-      'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;';
-    container.innerHTML = `
-      <div style="width:90%;max-width:1000px;height:90%;background:white;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;">
-        <div style="display:flex;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #eee;">
-          <h3 style="margin:0;">Termin buchen</h3>
-          <button onclick="document.getElementById('calendly-container').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">×</button>
-        </div>
-        <div class="calendly-inline-widget" data-url="${url}" style="flex:1;"></div>
-      </div>`;
-    document.body.appendChild(container);
+  function injectInlineCalendly(container) {
+    const user = window.Auth ? window.Auth.getCurrentUser() : null;
+    const name = user?.name || localStorage.getItem('userName') || '';
+    const email = user?.email || localStorage.getItem('userEmail') || '';
+    const nameParts = name.trim().split(/\s+/);
 
-    const widgetEl = container.querySelector('.calendly-inline-widget');
-    debug.log('Calendly widget container ready, loading widget.js...');
+    let url = CONFIG.CALENDLY_BASE_URL + '?hide_gdpr_banner=1';
+    if (name) url += '&name=' + encodeURIComponent(name);
+    if (email) url += '&email=' + encodeURIComponent(email);
+
+    container.innerHTML = '';
+    const widget = document.createElement('div');
+    widget.className = 'calendly-inline-widget';
+    widget.setAttribute('data-url', url);
+    widget.style.cssText = 'min-width:100%;height:700px;';
+    container.appendChild(widget);
 
     function initWidget() {
-      debug.log('Calling Calendly.initInlineWidget, window.Calendly:', !!window.Calendly);
+      debug.log('Initializing inline Calendly widget');
       try {
-        const nameParts = (data.name || '').trim().split(/\s+/);
         window.Calendly.initInlineWidget({
           url: url,
-          parentElement: widgetEl,
+          parentElement: widget,
           prefill: {
             firstName: nameParts[0] || '',
             lastName: nameParts.slice(1).join(' ') || '',
-            email: data.email,
+            email: email,
           },
         });
-        debug.log('Calendly.initInlineWidget called successfully');
+        debug.log('Inline Calendly widget initialized');
       } catch (err) {
         debug.error('Calendly.initInlineWidget failed:', err);
-        // Fallback to direct iframe
-        debug.log('Falling back to direct iframe');
         const iframe = document.createElement('iframe');
         iframe.src = url;
         iframe.style.cssText = 'width:100%;height:100%;border:none;';
-        widgetEl.appendChild(iframe);
+        widget.appendChild(iframe);
       }
     }
 
     if (window.Calendly) {
       initWidget();
     } else {
-      // Load Calendly widget CSS
       if (!document.querySelector('link[href*="assets.calendly.com"]')) {
         const css = document.createElement('link');
         css.rel = 'stylesheet';
@@ -241,29 +243,36 @@
         document.head.appendChild(css);
       }
 
-      // Load Calendly widget JS
-      const script = document.createElement('script');
-      script.src = 'https://assets.calendly.com/assets/external/widget.js';
-      script.type = 'text/javascript';
-      script.async = true;
-      script.setAttribute('data-cookieconsent', 'ignore');
-      script.onload = () => {
-        debug.log('Calendly widget.js loaded, window.Calendly:', !!window.Calendly);
-        if (window.Calendly) {
-          initWidget();
-        } else {
-          debug.error('widget.js loaded but window.Calendly still undefined');
-        }
-      };
-      script.onerror = (err) => {
-        debug.error('Failed to load Calendly widget.js:', err);
-        // Fallback to direct iframe
-        const iframe = document.createElement('iframe');
-        iframe.src = url;
-        iframe.style.cssText = 'width:100%;height:100%;border:none;';
-        widgetEl.appendChild(iframe);
-      };
-      document.head.appendChild(script);
+      if (!document.querySelector('script[src*="assets.calendly.com"]')) {
+        const script = document.createElement('script');
+        script.src = 'https://assets.calendly.com/assets/external/widget.js';
+        script.async = true;
+        script.setAttribute('data-cookieconsent', 'ignore');
+        script.onload = () => {
+          if (window.Calendly) {
+            initWidget();
+          } else {
+            debug.error('widget.js loaded but window.Calendly undefined');
+          }
+        };
+        script.onerror = () => {
+          debug.error('Failed to load Calendly widget.js');
+          const iframe = document.createElement('iframe');
+          iframe.src = url;
+          iframe.style.cssText = 'width:100%;height:100%;border:none;';
+          widget.appendChild(iframe);
+        };
+        document.head.appendChild(script);
+      } else {
+        // Script tag exists but Calendly not yet available, poll briefly
+        const poll = setInterval(() => {
+          if (window.Calendly) {
+            clearInterval(poll);
+            initWidget();
+          }
+        }, 100);
+        setTimeout(() => clearInterval(poll), 5000);
+      }
     }
   }
 
@@ -337,7 +346,7 @@
         };
 
         sessionStorage.setItem('pending_booking', JSON.stringify(bookingData));
-        showCalendly(buildCalendlyUrl(bookingData), bookingData);
+        showNotification('Buchungsdaten gespeichert. Bitte Termin im Kalender unten wählen.', 'success');
       },
       true
     );
@@ -390,7 +399,6 @@
         window.CartModal.clear();
       }
       showNotification('Termin erfolgreich gebucht!', 'success');
-      setTimeout(() => document.getElementById('calendly-container')?.remove(), 2000);
     }
   });
 
@@ -433,6 +441,7 @@
     setupControls();
     setupCheckout();
     updateAuthUI();
+    updateAppointmentSection();
 
     // Listen for cart updates
     window.addEventListener('cart-updated', () => {
@@ -442,6 +451,7 @@
     // Listen for auth changes
     window.addEventListener('auth-changed', () => {
       updateAuthUI();
+      updateAppointmentSection();
     });
 
     debug.log('Order page ready');
