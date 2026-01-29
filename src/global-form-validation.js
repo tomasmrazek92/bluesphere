@@ -498,19 +498,44 @@
       });
     }
 
+    // Helper: find the best gender/country value across all forms
+    function findGenderValue() {
+      var selectors = 'select[name="gender"], select[name="Gender"], select[name="Geschlecht"]';
+      var selects = document.querySelectorAll(selectors);
+      for (var i = 0; i < selects.length; i++) {
+        if (selects[i].value && selects[i].value !== '') return selects[i].value;
+      }
+      return '';
+    }
+
+    function findCountryValue() {
+      var selectors = '#country, select[name="country"], select[name="Country"]';
+      var selects = document.querySelectorAll(selectors);
+      for (var i = 0; i < selects.length; i++) {
+        if (selects[i].value && selects[i].value !== '') return selects[i].value;
+      }
+      return '';
+    }
+
+    function refreshSelectStates() {
+      var gv = findGenderValue();
+      var cv = findCountryValue();
+      FormState.genderValid = gv !== '';
+      FormState.countryValid = cv !== '';
+      FormState.checkFormValidity();
+    }
+
     // Gender select validation
-    const genderSelect = waitlistForm.querySelector(
+    var allGenderSelects = document.querySelectorAll(
       'select[name="gender"], select[name="Gender"], select[name="Geschlecht"]'
     );
-    if (genderSelect) {
-      FormState.genderValid = genderSelect.value && genderSelect.value !== '';
-
+    allGenderSelects.forEach(function (genderSelect) {
       genderSelect.addEventListener('change', function (e) {
         FormState.genderValid = e.target.value && e.target.value !== '';
 
-        const fieldWrap = e.target.closest('.form_field');
+        var fieldWrap = e.target.closest('.form_field');
         if (fieldWrap) {
-          const validationMsg = fieldWrap.querySelector('.form_validation');
+          var validationMsg = fieldWrap.querySelector('.form_validation');
           if (validationMsg) {
             if (!e.target.value) {
               validationMsg.classList.add('show');
@@ -522,43 +547,32 @@
 
         FormState.checkFormValidity();
       });
-
-      // Nice-select uses jQuery .trigger("change") which doesn't fire native
-      // DOM change events. Listen for clicks on all nice-select options instead.
-      const allNiceSelectLists = waitlistForm.querySelectorAll('.nice-select .list');
-      allNiceSelectLists.forEach(function (list) {
-        list.addEventListener('click', function (e) {
-          const li = e.target.closest('li');
-          if (li) {
-            setTimeout(function () {
-              FormState.genderValid = genderSelect.value && genderSelect.value !== '';
-              const cs = waitlistForm.querySelector(
-                '#country, select[name="country"], select[name="Country"]'
-              );
-              if (cs) {
-                FormState.countryValid = cs.value && cs.value !== '';
-              }
-              FormState.checkFormValidity();
-            }, 100);
-          }
-        });
-      });
-    }
+    });
 
     // Country select validation
-    const countrySelect = waitlistForm.querySelector(
+    var allCountrySelects = document.querySelectorAll(
       '#country, select[name="country"], select[name="Country"]'
     );
-    if (countrySelect) {
-      FormState.countryValid = countrySelect.value && countrySelect.value !== '';
-
+    allCountrySelects.forEach(function (countrySelect) {
       countrySelect.addEventListener('change', function (e) {
         FormState.countryValid = e.target.value && e.target.value !== '';
         FormState.checkFormValidity();
       });
-    }
+    });
 
-    FormState.checkFormValidity();
+    // Nice-select click handlers — listen on ALL nice-select lists on the page
+    var allNiceSelectLists = document.querySelectorAll('.nice-select .list');
+    allNiceSelectLists.forEach(function (list) {
+      list.addEventListener('click', function (e) {
+        var li = e.target.closest('li');
+        if (li) {
+          setTimeout(refreshSelectStates, 100);
+        }
+      });
+    });
+
+    // Set initial state
+    refreshSelectStates();
   }
 
   // ========================================
