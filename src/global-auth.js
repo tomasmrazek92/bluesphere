@@ -717,8 +717,17 @@
       el.style.display = isAuth ? '' : 'none';
     });
 
+    // Hide logged-out elements; on homepage and /vision, also hide .nav_user
+    const path = window.location.pathname;
+    const isHomepageOrVision = path === '/' || path === '/en' || path === '/en/' ||
+      path.includes('/vision');
+
     $$('[data-auth-show="logged-out"]').forEach((el) => {
-      el.style.display = !isAuth ? '' : 'none';
+      if (isHomepageOrVision && el.classList.contains('nav_user')) {
+        el.style.display = 'none';
+      } else {
+        el.style.display = !isAuth ? '' : 'none';
+      }
     });
 
     if (user) {
