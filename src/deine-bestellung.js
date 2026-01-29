@@ -173,25 +173,66 @@
   // ========================================
   let calendlyInjected = false;
 
+  function getSelectedPractice() {
+    const practiceSelect = $(
+      '#Praxis, [data-flow="practice-select"], #doctor-practice-select, select[name="Praxis"], select[name="practice"], select[name="doctor"]'
+    );
+    let practice = practiceSelect?.value;
+
+    // Fallback: nice-select may not update the hidden select
+    if (!practice && practiceSelect) {
+      const niceSelect = practiceSelect.nextElementSibling;
+      if (niceSelect && niceSelect.classList.contains('nice-select')) {
+        const selected = niceSelect.querySelector('.option.selected');
+        if (selected && selected.getAttribute('data-value')) {
+          practice = selected.getAttribute('data-value');
+        }
+      }
+    }
+    return { practiceSelect, practice };
+  }
+
   function updateAppointmentSection() {
     const headline = $('#choose-appointment-headline');
     const widgetContainer = $('.w-embed.w-iframe');
     const isAuth = window.Auth && window.Auth.isAuthenticated();
+    const { practice } = getSelectedPractice();
+    const show = isAuth && !!practice;
 
-    debug.log('updateAppointmentSection, authenticated:', isAuth);
+    debug.log('updateAppointmentSection, authenticated:', isAuth, 'practice:', practice);
 
-    if (headline) headline.style.display = isAuth ? '' : 'none';
-    if (widgetContainer) widgetContainer.style.display = isAuth ? '' : 'none';
+    if (headline) headline.style.display = show ? '' : 'none';
+    if (widgetContainer) widgetContainer.style.display = show ? '' : 'none';
 
-    if (isAuth && widgetContainer && !calendlyInjected) {
+    if (show && widgetContainer && !calendlyInjected) {
       injectInlineCalendly(widgetContainer);
       calendlyInjected = true;
     }
 
-    if (!isAuth && widgetContainer) {
+    if (!show && widgetContainer) {
       widgetContainer.innerHTML = '';
       calendlyInjected = false;
     }
+
+    // Update Fortfahren button appearance
+    updateFortfahrenButton();
+  }
+
+  function updateFortfahrenButton() {
+    const btns = $$('[data-flow="btn-buy"], [data-cart="btn-buy"], [data-cart="checkout"]');
+    const { practice } = getSelectedPractice();
+    const isAuth = window.Auth && window.Auth.isAuthenticated();
+    const enabled = isAuth && !!practice;
+
+    btns.forEach((btn) => {
+      if (enabled) {
+        btn.style.opacity = '';
+        btn.style.pointerEvents = '';
+      } else {
+        btn.style.opacity = '0.5';
+        btn.style.pointerEvents = 'auto'; // keep clickable for toast
+      }
+    });
   }
 
   function injectInlineCalendly(container) {
@@ -205,11 +246,19 @@
     if (email) url += '&email=' + encodeURIComponent(email);
 
     container.innerHTML = '';
+    container.style.overflow = 'visible';
     const widget = document.createElement('div');
     widget.className = 'calendly-inline-widget';
-    widget.setAttribute('data-url', url);
-    widget.style.cssText = 'min-width:100%;height:700px;';
+    widget.style.cssText = 'min-width:100%;min-height:1100px;';
     container.appendChild(widget);
+
+    // Auto-resize to match Calendly iframe content height
+    window.addEventListener('message', function calendlyResize(e) {
+      if (e.data?.event === 'calendly.page_height' && e.data?.payload?.height) {
+        const h = Math.ceil(parseFloat(e.data.payload.height));
+        if (h > 0) widget.style.minHeight = h + 'px';
+      }
+    });
 
     function initWidget() {
       debug.log('Initializing inline Calendly widget');
@@ -264,7 +313,6 @@
         };
         document.head.appendChild(script);
       } else {
-        // Script tag exists but Calendly not yet available, poll briefly
         const poll = setInterval(() => {
           if (window.Calendly) {
             clearInterval(poll);
@@ -274,6 +322,29 @@
         setTimeout(() => clearInterval(poll), 5000);
       }
     }
+  }
+
+  // ========================================
+  // PRACTICE SELECT LISTENER
+  // ========================================
+  function setupPracticeListener() {
+    const { practiceSelect } = getSelectedPractice();
+    if (practiceSelect) {
+      practiceSelect.addEventListener('change', () => {
+        debug.log('Practice changed');
+        updateAppointmentSection();
+      });
+    }
+
+    // Also observe nice-select clicks (nice-select doesn't fire native change reliably)
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.nice-select .option')) {
+        setTimeout(() => {
+          debug.log('Nice-select option clicked');
+          updateAppointmentSection();
+        }, 50);
+      }
+    });
   }
 
   // ========================================
@@ -299,6 +370,12 @@
           return;
         }
 
+        const { practiceSelect, practice } = getSelectedPractice();
+        if (!practice) {
+          showNotification('Bitte wähle Praxis', 'error');
+          return;
+        }
+
         if (!window.CartModal) {
           debug.error('CartModal not available');
           return;
@@ -307,27 +384,6 @@
         const items = window.CartModal.getItems();
         if (items.length === 0) {
           showNotification('Warenkorb ist leer', 'error');
-          return;
-        }
-
-        // Check doctor selection (also check nice-select selected value)
-        const practiceSelect = $(
-          '#Praxis, [data-flow="practice-select"], #doctor-practice-select, select[name="Praxis"], select[name="practice"], select[name="doctor"]'
-        );
-        let practice = practiceSelect?.value;
-
-        // Fallback: nice-select may not update the hidden select, read from nice-select UI
-        if (!practice && practiceSelect) {
-          const niceSelect = practiceSelect.nextElementSibling;
-          if (niceSelect && niceSelect.classList.contains('nice-select')) {
-            const selected = niceSelect.querySelector('.option.selected');
-            if (selected && selected.getAttribute('data-value')) {
-              practice = selected.getAttribute('data-value');
-            }
-          }
-        }
-        if (!practice) {
-          showNotification('Bitte wählen Sie eine Arztpraxis', 'error');
           return;
         }
 
@@ -440,6 +496,7 @@
     renderCart();
     setupControls();
     setupCheckout();
+    setupPracticeListener();
     updateAuthUI();
     updateAppointmentSection();
 
