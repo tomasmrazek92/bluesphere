@@ -1,1 +1,789 @@
-"use strict";(()=>{(function(){let K={API_BASE:"https://bluesphere.dev.longtermhealth.de",DEBUG:!0},f={TOKEN_KEY:"auth_token",REFRESH_KEY:"refresh_token",USER_KEY:"user_data"},o={log:(...e)=>K.DEBUG&&console.log("[AUTH]",...e),error:(...e)=>console.error("[AUTH]",...e)},i=(e,t=document)=>t.querySelector(e),v=(e,t=document)=>[...t.querySelectorAll(e)],p={set:function(e,t,n=60){let a={value:t,expiry:new Date().getTime()+n*60*1e3};try{sessionStorage.setItem(e,JSON.stringify(a))}catch(r){o.error("Storage error:",r)}},get:function(e){try{let t=sessionStorage.getItem(e);if(!t)return null;let n=JSON.parse(t);return new Date().getTime()>n.expiry?(sessionStorage.removeItem(e),null):n.value}catch{return null}},remove:function(e){sessionStorage.removeItem(e)}};async function T(e,t={}){let n=K.API_BASE+e,a=p.get(f.TOKEN_KEY),r={"Content-Type":"application/json",...t.headers};a&&(r.Authorization=`Bearer ${a}`),o.log("API Call:",e,t.method||"GET");try{let s=await fetch(n,{...t,headers:r});return o.log("API Response:",s.status),s}catch(s){throw o.error("API error:",s),s}}let D={firstName:"",lastName:"",email:"",password:""};async function M(e){let{firstName:t,lastName:n,email:a,password:r,dateOfBirth:s,gender:d}=e;o.log("Registering user:",a);let u={firstName:t.trim(),lastName:n.trim(),email:a.toLowerCase().trim(),password:r,dateOfBirth:s,gender:d,role:"PATIENT"},m=await T("/user/registration",{method:"POST",body:JSON.stringify(u)});if(!m.ok){let C=await m.json().catch(()=>({}));throw new Error(C.statusMessage||C.message||"Registrierung fehlgeschlagen")}let h=await m.json();return o.log("Registration successful:",h),p.set(f.USER_KEY,{name:`${t} ${n}`,email:a,id:h.userId||h.id}),h}async function Y(e,t){o.log("Logging in user:",e);let n=await T("/user/login",{method:"POST",body:JSON.stringify({email:e.toLowerCase().trim(),password:t})});if(!n.ok){let h=await n.json().catch(()=>({}));throw new Error(h.statusMessage||h.message||"Anmeldung fehlgeschlagen")}let a=await n.json();o.log("Login response:",a);let r=a.result||a,s=r.user||r,d=r.token||r.accessToken||a.token||a.accessToken,u=r.refreshToken||a.refreshToken;d?(p.set(f.TOKEN_KEY,d),o.log("Token stored")):o.log("Warning: No token in login response"),u&&p.set(f.REFRESH_KEY,u,60*24*7);let m={name:s.firstName?`${s.firstName} ${s.lastName}`:s.name,email:s.email||e,id:s.id};return p.set(f.USER_KEY,m),localStorage.setItem("userName",m.name),localStorage.setItem("userEmail",m.email),localStorage.setItem("userId",String(m.id)),o.log("Login successful"),window.dispatchEvent(new CustomEvent("auth-changed",{detail:{authenticated:!0}})),s}async function P(e){o.log("Verifying email with code:",e);let t=await T("/user/confirmation",{method:"POST",body:JSON.stringify({code:e.trim()})});if(!t.ok&&t.status!==201){let a=await t.json().catch(()=>({}));throw new Error(a.statusMessage||a.message||"Verifizierung fehlgeschlagen")}let n=await t.json();return o.log("Verification successful:",n),(n.token||n.accessToken)&&p.set(f.TOKEN_KEY,n.token||n.accessToken),window.dispatchEvent(new CustomEvent("auth-changed",{detail:{authenticated:!0}})),n}async function j(){o.log("Resending verification code");let e=p.get(f.USER_KEY);if(!(e!=null&&e.email))throw new Error("Keine E-Mail-Adresse gefunden");let t=await T("/user/verification-code-resend",{method:"POST",body:JSON.stringify({email:e.email})});if(!t.ok){let n=await t.json().catch(()=>({}));throw new Error(n.statusMessage||n.message||"Code konnte nicht gesendet werden")}return!0}function z(){let e=p.get(f.TOKEN_KEY),t=p.get(f.USER_KEY);return!!(e||t)}function L(){return p.get(f.USER_KEY)}function G(){p.remove(f.TOKEN_KEY),p.remove(f.REFRESH_KEY),p.remove(f.USER_KEY),localStorage.removeItem("userName"),localStorage.removeItem("userEmail"),localStorage.removeItem("userId"),window.dispatchEvent(new CustomEvent("auth-changed",{detail:{authenticated:!1}})),o.log("User logged out")}let ve=0,F="login";function H(){return i('[data-modal-name="register"]')}function N(){let e=H();return e?v('[data-register="form-step"]',e):v('[data-register="form-step"]')}function x(e){N().forEach((n,a)=>{n.style.display=a===e?"block":"none"}),ve=e,o.log("Showing step:",e)}function we(){let e=N();for(let t=0;t<e.length;t++)if(e[t].getAttribute("data-register-type")==="register"){x(t),F="register";return}}function $(){let e=N();for(let t=0;t<e.length;t++)if((e[t].getAttribute("data-registe-type")||e[t].getAttribute("data-register-type"))==="sign-in"){x(t),F="login";return}}function Ee(){let e=N();for(let t=0;t<e.length;t++)if(e[t].getAttribute("data-register-type")==="code"){x(t);return}}function _(){x(0)}function ke(){if(o.log("Opening register modal"),typeof window.openModal=="function")window.openModal("register"),setTimeout(()=>{_()},100);else{let e=i('[data-modal-target="register"]'),t=i('[data-modal-name="register"]'),n=i("[data-modal-group-status]");e&&e.setAttribute("data-modal-status","active"),t&&t.setAttribute("data-modal-status","active"),n&&n.setAttribute("data-modal-group-status","active"),setTimeout(()=>{_()},100)}}function O(){if(typeof window.closeAllModals=="function")window.closeAllModals();else{let e=i('[data-modal-target="register"]'),t=i('[data-modal-name="register"]'),n=i("[data-modal-group-status]");e&&e.setAttribute("data-modal-status","not-active"),t&&t.setAttribute("data-modal-status","not-active"),n&&n.setAttribute("data-modal-group-status","not-active")}}function w(e,t){let n=e.querySelector(".auth-error-message");if(!n){n=document.createElement("div"),n.className="auth-error-message",n.style.cssText="color: #dc3545; padding: 10px; margin: 10px 0; background: #f8d7da; border-radius: 4px; font-size: 14px;";let a=e.querySelector(".form_field-wrap");a?a.parentNode.insertBefore(n,a):e.prepend(n)}n.textContent=t,n.style.display="block",setTimeout(()=>{n.style.display="none"},5e3)}function U(){v(".auth-error-message").forEach(e=>e.style.display="none")}function b(e,t){t?(e.setAttribute("data-loading","true"),e.style.opacity="0.7",e.style.pointerEvents="none"):(e.removeAttribute("data-loading"),e.style.opacity="1",e.style.pointerEvents="auto")}function E(e,t="info"){let n=document.createElement("div");n.style.cssText=`position:fixed;top:20px;right:20px;padding:16px 24px;background:${t==="success"?"#00a86b":t==="error"?"#dc3545":"#333"};color:white;border-radius:8px;z-index:10001;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;`,n.textContent=e,document.body.appendChild(n),setTimeout(()=>{n.style.opacity="0",setTimeout(()=>n.remove(),300)},3e3)}function be(){o.log("Setting up auth handlers");let e=H();if(!e){o.log("Register modal not found");return}let t=i('[data-register="form-wrap"]',e);if(!t){o.log("Auth form not found in register modal");return}o.log("Found form in register modal"),t.addEventListener("submit",l=>{l.preventDefault()});let n=i('[data-register="email-signin"]',e);n&&n.addEventListener("click",l=>{l.preventDefault(),o.log("Email signin clicked"),$()}),v('[data-register="register-link"]',e).forEach(l=>{l.addEventListener("click",c=>{c.preventDefault(),o.log("Register link clicked"),we()})}),v('[data-register="login-link"]',e).forEach(l=>{l.addEventListener("click",c=>{c.preventDefault(),o.log("Login link clicked"),$()})}),v('[data-register="btn-back"]',e).forEach(l=>{l.addEventListener("click",c=>{c.preventDefault(),o.log("Back button clicked"),_()})});let d=i('[data-register="btn-next"]',e);d&&d.addEventListener("click",async l=>{var ee,te,ne,oe,ae,ie,re,se,le,ce,de,ue,ge,me,fe,pe,he;l.preventDefault(),o.log("Next button clicked (register)"),U();let c=((ee=i("#first_name",e))==null?void 0:ee.value)||((te=i('input[name="first_name"]',e))==null?void 0:te.value)||"",g=((ne=i("#last_name",e))==null?void 0:ne.value)||((oe=i('input[name="last_name"]',e))==null?void 0:oe.value)||"",k=((ae=i("#email-sign-in",e))==null?void 0:ae.value)||((ie=i('input[name="email-sign-in"]',e))==null?void 0:ie.value)||"",y=((re=i("#password-signin",e))==null?void 0:re.value)||((se=i('input[name="password-signin"]',e))==null?void 0:se.value)||"",B=((le=i("#password-signin-again",e))==null?void 0:le.value)||((ce=i('input[name="password-signin-again"]',e))==null?void 0:ce.value)||"";if(o.log("Form values:",{firstName:c,lastName:g,email:k,hasPassword:!!y}),!c||!g){w(t,"Bitte Vor- und Nachnamen eingeben");return}if(!k||!k.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)){w(t,"Bitte eine g\xFCltige E-Mail-Adresse eingeben");return}if(!y||y.length<8||!/[A-Z]/.test(y)||!/[a-z]/.test(y)||!/[0-9]/.test(y)||!/[^A-Za-z0-9]/.test(y)){w(t,"Passwort: min. 8 Zeichen, 1 Gro\xDFbuchstabe, 1 Kleinbuchstabe, 1 Zahl und 1 Sonderzeichen");return}if(y!==B){w(t,"Passw\xF6rter stimmen nicht \xFCberein");return}let A=((de=i("#date-of-birth",e))==null?void 0:de.value)||((ue=i('input[name="date-of-birth"]',e))==null?void 0:ue.value)||((ge=i('input[name="dateOfBirth"]',e))==null?void 0:ge.value)||((me=i('input[type="date"]',e))==null?void 0:me.value)||"";if(!A){w(t,"Bitte Geburtsdatum eingeben");return}let R=new Date(A).toISOString().split("T")[0],X=((fe=i("#gender-register",e))==null?void 0:fe.value)||((pe=i('select[name="gender-register"]',e))==null?void 0:pe.value)||((he=i('select[name="gender"]',e))==null?void 0:he.value)||"";if(!X){w(t,"Bitte Geschlecht ausw\xE4hlen");return}D={firstName:c,lastName:g,email:k,password:y,dateOfBirth:R,gender:X},b(d,!0);try{await M(D),E("Registrierung erfolgreich! Bitte Code eingeben.","success"),Ee()}catch(ye){o.error("Registration error:",ye),w(t,ye.message)}finally{b(d,!1)}});let u=i('[data-register="btn-signin"]',e);u&&u.addEventListener("click",async l=>{var k,y,B,A;l.preventDefault(),o.log("Signin button clicked"),U();let c=((k=i("#email-login",e))==null?void 0:k.value)||((y=i('input[name="email-login"]',e))==null?void 0:y.value)||"",g=((B=i("#password-login",e))==null?void 0:B.value)||((A=i('input[name="password-login"]',e))==null?void 0:A.value)||"";if(o.log("Login attempt:",c),!c||!g){w(t,"Bitte E-Mail und Passwort eingeben");return}b(u,!0);try{await Y(c,g),E("Anmeldung erfolgreich!","success"),O(),S(),J()}catch(R){o.error("Login error:",R),w(t,R.message)}finally{b(u,!1)}});let m=v('input[name^="code-"]',e);m.forEach((l,c)=>{l.addEventListener("input",g=>{g.target.value.length===1&&c<m.length-1&&m[c+1].focus()}),l.addEventListener("keydown",g=>{g.key==="Backspace"&&!g.target.value&&c>0&&m[c-1].focus()})});let h=i('[data-register="btn-code-confirm"]',e);h&&h.addEventListener("click",async l=>{l.preventDefault(),o.log("Code confirm clicked"),U();let c="";if(m.forEach(g=>{c+=g.value}),o.log("Code entered:",c),c.length!==6){w(t,"Bitte den vollst\xE4ndigen 6-stelligen Code eingeben");return}b(h,!0);try{await P(c),E("E-Mail erfolgreich verifiziert!","success"),O(),S()}catch(g){o.error("Verification error:",g),w(t,g.message)}finally{b(h,!1)}});let C=i('[data-register="code-resend"]',e);C&&C.addEventListener("click",async l=>{l.preventDefault(),o.log("Resend code clicked");try{await j(),E("Code wurde erneut gesendet","success")}catch(c){o.error("Resend error:",c),E(c.message,"error")}});let Z=i('[data-register="password-forget"]',e);Z&&Z.addEventListener("click",l=>{l.preventDefault(),o.log("Password forget clicked"),E("Passwort-Reset wird noch implementiert","info")});let W=i('[data-register="google-signin"]',e);W&&W.addEventListener("click",l=>{l.preventDefault(),o.log("Google signin clicked"),E("Google-Anmeldung wird noch implementiert","info")});let Q=i('[data-register="apple-signin"]',e);Q&&Q.addEventListener("click",l=>{l.preventDefault(),o.log("Apple signin clicked"),E("Apple-Anmeldung wird noch implementiert","info")}),o.log("Auth handlers setup complete")}function S(){let e=z(),t=L();o.log("Updating auth UI, authenticated:",e,t),v('[data-auth-show="logged-in"]').forEach(r=>{r.style.display=e?"":"none"});let n=window.location.pathname,a=n==="/"||n==="/en"||n==="/en/"||n.includes("/vision");v('[data-auth-show="logged-out"]').forEach(r=>{a&&r.classList.contains("nav_user")?r.style.display="none":r.style.display=e?"none":""}),t&&(v('[data-auth-user="name"]').forEach(r=>{r.textContent=t.name}),v('[data-auth-user="email"]').forEach(r=>{r.textContent=t.email}))}let Se="https://calendly.com/j-erdweg-longtermhealth/biomarker-bluttest";function J(){o.log("Opening Calendly modal");let e=L(),t=(e==null?void 0:e.name)||localStorage.getItem("userName")||"",n=(e==null?void 0:e.email)||localStorage.getItem("userEmail")||"",a=document.getElementById("calendly-modal-overlay");if(a){let u=document.getElementById("calendly-embed-container");u&&(u.innerHTML=""),a.style.display="flex",setTimeout(()=>{a.style.opacity="1"},10),V(t,n);return}a=document.createElement("div"),a.id="calendly-modal-overlay",a.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s;";let r=document.createElement("div");r.style.cssText="background:#fff;border-radius:12px;width:90vw;max-width:700px;height:85vh;max-height:750px;position:relative;overflow:hidden;";let s=document.createElement("button");s.textContent="\u2715",s.style.cssText="position:absolute;top:12px;right:16px;z-index:10;background:none;border:none;font-size:20px;cursor:pointer;color:#333;",s.addEventListener("click",I);let d=document.createElement("div");d.id="calendly-embed-container",d.style.cssText="width:100%;height:100%;",r.appendChild(s),r.appendChild(d),a.appendChild(r),document.body.appendChild(a),a.addEventListener("click",u=>{u.target===a&&I()}),setTimeout(()=>{a.style.opacity="1"},10),V(t,n),Ce()}function V(e,t){let n=document.getElementById("calendly-embed-container");if(!n)return;let a=Se+"?hide_gdpr_banner=1";e&&(a+="&name="+encodeURIComponent(e)),t&&(a+="&email="+encodeURIComponent(t));let r=document.createElement("div");if(r.className="calendly-inline-widget",r.setAttribute("data-url",a),r.style.cssText="min-width:100%;height:100%;",n.appendChild(r),document.querySelector('script[src*="assets.calendly.com"]'))window.Calendly&&window.Calendly.initInlineWidget({url:a,parentElement:n});else{let s=document.createElement("script");s.src="https://assets.calendly.com/assets/external/widget.js",s.async=!0,document.body.appendChild(s)}o.log("Calendly widget injected with name:",e,"email:",t)}function Ce(){window.addEventListener("message",e=>{var t,n,a,r,s;if(e.origin==="https://calendly.com"&&((t=e.data)==null?void 0:t.event)==="calendly.event_scheduled"){o.log("Calendly event scheduled:",e.data);let d=L(),u={userId:(d==null?void 0:d.id)||localStorage.getItem("userId"),userName:(d==null?void 0:d.name)||localStorage.getItem("userName"),userEmail:(d==null?void 0:d.email)||localStorage.getItem("userEmail"),eventUri:(a=(n=e.data.payload)==null?void 0:n.event)==null?void 0:a.uri,inviteeUri:(s=(r=e.data.payload)==null?void 0:r.invitee)==null?void 0:s.uri,scheduledAt:new Date().toISOString()};o.log("Booking data:",u),localStorage.setItem("lastBooking",JSON.stringify(u)),setTimeout(()=>{I(),E("Termin erfolgreich gebucht!","success")},1500)}})}function I(){let e=document.getElementById("calendly-modal-overlay");e&&(e.style.opacity="0",setTimeout(()=>{e.style.display="none"},300),o.log("Calendly modal closed"))}function Ae(){document.addEventListener("click",e=>{e.target.closest("[data-auth-logout]")&&(e.preventDefault(),G(),S(),E("Erfolgreich abgemeldet","info"),o.log("User logged out via button"))})}function q(){o.log("Initializing global auth module"),be(),Ae(),S(),window.Auth={isAuthenticated:z,getCurrentUser:L,login:Y,register:M,verifyEmail:P,resendCode:j,logout:G,openModal:ke,closeModal:O,openCalendly:J,closeCalendly:I,updateUI:S},o.log("Global auth module ready. Use Auth.openModal() to open.")}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",q):q()})();})();
+"use strict";
+(() => {
+  // bin/live-reload.js
+  new EventSource(`${"http://localhost:3000"}/esbuild`).addEventListener("change", () => location.reload());
+
+  // src/global-auth.js
+  (function() {
+    const CONFIG = {
+      API_BASE: "https://bluesphere.dev.longtermhealth.de",
+      DEBUG: true
+    };
+    const AUTH_CONFIG = {
+      TOKEN_KEY: "auth_token",
+      REFRESH_KEY: "refresh_token",
+      USER_KEY: "user_data"
+    };
+    const debug = {
+      log: (...args) => CONFIG.DEBUG && console.log("[AUTH]", ...args),
+      error: (...args) => console.error("[AUTH]", ...args)
+    };
+    const $ = (sel, root = document) => root.querySelector(sel);
+    const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+    const SecureStorage = {
+      set: function(key, value, expiryMinutes = 60) {
+        const item = {
+          value,
+          expiry: (/* @__PURE__ */ new Date()).getTime() + expiryMinutes * 60 * 1e3
+        };
+        try {
+          sessionStorage.setItem(key, JSON.stringify(item));
+        } catch (e) {
+          debug.error("Storage error:", e);
+        }
+      },
+      get: function(key) {
+        try {
+          const itemStr = sessionStorage.getItem(key);
+          if (!itemStr)
+            return null;
+          const item = JSON.parse(itemStr);
+          const now = (/* @__PURE__ */ new Date()).getTime();
+          if (now > item.expiry) {
+            sessionStorage.removeItem(key);
+            return null;
+          }
+          return item.value;
+        } catch (e) {
+          return null;
+        }
+      },
+      remove: function(key) {
+        sessionStorage.removeItem(key);
+      }
+    };
+    async function apiCall(endpoint, options = {}) {
+      const url = CONFIG.API_BASE + endpoint;
+      const token = SecureStorage.get(AUTH_CONFIG.TOKEN_KEY);
+      const headers = {
+        "Content-Type": "application/json",
+        ...options.headers
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      debug.log("API Call:", endpoint, options.method || "GET");
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers
+        });
+        debug.log("API Response:", response.status);
+        return response;
+      } catch (error) {
+        debug.error("API error:", error);
+        throw error;
+      }
+    }
+    let pendingRegistration = {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: ""
+    };
+    async function register(formData) {
+      const { firstName, lastName, email, password, dateOfBirth, gender } = formData;
+      debug.log("Registering user:", email);
+      const payload = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.toLowerCase().trim(),
+        password,
+        dateOfBirth,
+        gender,
+        role: "PATIENT"
+      };
+      const response = await apiCall("/user/registration", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.statusMessage || error.message || "Registrierung fehlgeschlagen");
+      }
+      const data = await response.json();
+      debug.log("Registration successful:", data);
+      SecureStorage.set(AUTH_CONFIG.USER_KEY, {
+        name: `${firstName} ${lastName}`,
+        email,
+        id: data.userId || data.id
+      });
+      return data;
+    }
+    async function login(email, password) {
+      debug.log("Logging in user:", email);
+      const response = await apiCall("/user/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          password
+        })
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.statusMessage || error.message || "Anmeldung fehlgeschlagen");
+      }
+      const data = await response.json();
+      debug.log("Login response:", data);
+      const result = data.result || data;
+      const user = result.user || result;
+      const token = result.token || result.accessToken || data.token || data.accessToken;
+      const refreshToken = result.refreshToken || data.refreshToken;
+      if (token) {
+        SecureStorage.set(AUTH_CONFIG.TOKEN_KEY, token);
+        debug.log("Token stored");
+      } else {
+        debug.log("Warning: No token in login response");
+      }
+      if (refreshToken) {
+        SecureStorage.set(AUTH_CONFIG.REFRESH_KEY, refreshToken, 60 * 24 * 7);
+      }
+      const userData = {
+        name: user.firstName ? `${user.firstName} ${user.lastName}` : user.name,
+        email: user.email || email,
+        id: user.id
+      };
+      SecureStorage.set(AUTH_CONFIG.USER_KEY, userData);
+      localStorage.setItem("userName", userData.name);
+      localStorage.setItem("userEmail", userData.email);
+      localStorage.setItem("userId", String(userData.id));
+      debug.log("Login successful");
+      window.dispatchEvent(new CustomEvent("auth-changed", { detail: { authenticated: true } }));
+      return user;
+    }
+    async function verifyEmail(code) {
+      debug.log("Verifying email with code:", code);
+      const response = await apiCall("/user/confirmation", {
+        method: "POST",
+        body: JSON.stringify({ code: code.trim() })
+      });
+      if (!response.ok && response.status !== 201) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.statusMessage || error.message || "Verifizierung fehlgeschlagen");
+      }
+      const data = await response.json();
+      debug.log("Verification successful:", data);
+      if (data.token || data.accessToken) {
+        SecureStorage.set(AUTH_CONFIG.TOKEN_KEY, data.token || data.accessToken);
+      }
+      window.dispatchEvent(new CustomEvent("auth-changed", { detail: { authenticated: true } }));
+      return data;
+    }
+    async function resendCode() {
+      debug.log("Resending verification code");
+      const userData = SecureStorage.get(AUTH_CONFIG.USER_KEY);
+      if (!userData?.email) {
+        throw new Error("Keine E-Mail-Adresse gefunden");
+      }
+      const response = await apiCall("/user/verification-code-resend", {
+        method: "POST",
+        body: JSON.stringify({ email: userData.email })
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.statusMessage || error.message || "Code konnte nicht gesendet werden");
+      }
+      return true;
+    }
+    function isAuthenticated() {
+      const token = SecureStorage.get(AUTH_CONFIG.TOKEN_KEY);
+      const userData = SecureStorage.get(AUTH_CONFIG.USER_KEY);
+      return !!(token || userData);
+    }
+    function getCurrentUser() {
+      return SecureStorage.get(AUTH_CONFIG.USER_KEY);
+    }
+    function logout() {
+      SecureStorage.remove(AUTH_CONFIG.TOKEN_KEY);
+      SecureStorage.remove(AUTH_CONFIG.REFRESH_KEY);
+      SecureStorage.remove(AUTH_CONFIG.USER_KEY);
+      localStorage.removeItem("userName");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("userId");
+      window.dispatchEvent(new CustomEvent("auth-changed", { detail: { authenticated: false } }));
+      debug.log("User logged out");
+    }
+    let currentStep = 0;
+    let authMode = "login";
+    function getRegisterModal() {
+      return $('[data-modal-name="register"]');
+    }
+    function getFormSteps() {
+      const registerModal = getRegisterModal();
+      if (registerModal) {
+        return $$('[data-register="form-step"]', registerModal);
+      }
+      return $$('[data-register="form-step"]');
+    }
+    function showStep(stepIndex) {
+      const steps = getFormSteps();
+      steps.forEach((step, i) => {
+        step.style.display = i === stepIndex ? "block" : "none";
+      });
+      currentStep = stepIndex;
+      debug.log("Showing step:", stepIndex);
+    }
+    function showRegisterStep() {
+      const steps = getFormSteps();
+      for (let i = 0; i < steps.length; i++) {
+        const type = steps[i].getAttribute("data-register-type");
+        if (type === "register") {
+          showStep(i);
+          authMode = "register";
+          return;
+        }
+      }
+    }
+    function showLoginStep() {
+      const steps = getFormSteps();
+      for (let i = 0; i < steps.length; i++) {
+        const type = steps[i].getAttribute("data-registe-type") || steps[i].getAttribute("data-register-type");
+        if (type === "sign-in") {
+          showStep(i);
+          authMode = "login";
+          return;
+        }
+      }
+    }
+    function showCodeStep() {
+      const steps = getFormSteps();
+      for (let i = 0; i < steps.length; i++) {
+        const type = steps[i].getAttribute("data-register-type");
+        if (type === "code") {
+          showStep(i);
+          return;
+        }
+      }
+    }
+    function showInitialStep() {
+      showStep(0);
+    }
+    function openModal() {
+      debug.log("Opening register modal");
+      if (typeof window.openModal === "function") {
+        window.openModal("register");
+        setTimeout(() => {
+          showInitialStep();
+        }, 100);
+      } else {
+        const modalTarget = $('[data-modal-target="register"]');
+        const modalName = $('[data-modal-name="register"]');
+        const modalGroup = $("[data-modal-group-status]");
+        if (modalTarget)
+          modalTarget.setAttribute("data-modal-status", "active");
+        if (modalName)
+          modalName.setAttribute("data-modal-status", "active");
+        if (modalGroup)
+          modalGroup.setAttribute("data-modal-group-status", "active");
+        setTimeout(() => {
+          showInitialStep();
+        }, 100);
+      }
+    }
+    function closeModal() {
+      if (typeof window.closeAllModals === "function") {
+        window.closeAllModals();
+      } else {
+        const modalTarget = $('[data-modal-target="register"]');
+        const modalName = $('[data-modal-name="register"]');
+        const modalGroup = $("[data-modal-group-status]");
+        if (modalTarget)
+          modalTarget.setAttribute("data-modal-status", "not-active");
+        if (modalName)
+          modalName.setAttribute("data-modal-status", "not-active");
+        if (modalGroup)
+          modalGroup.setAttribute("data-modal-group-status", "not-active");
+      }
+    }
+    function showFormError(form, message) {
+      let errorEl = form.querySelector(".auth-error-message");
+      if (!errorEl) {
+        errorEl = document.createElement("div");
+        errorEl.className = "auth-error-message";
+        errorEl.style.cssText = "color: #dc3545; padding: 10px; margin: 10px 0; background: #f8d7da; border-radius: 4px; font-size: 14px;";
+        const firstField = form.querySelector(".form_field-wrap");
+        if (firstField) {
+          firstField.parentNode.insertBefore(errorEl, firstField);
+        } else {
+          form.prepend(errorEl);
+        }
+      }
+      errorEl.textContent = message;
+      errorEl.style.display = "block";
+      setTimeout(() => {
+        errorEl.style.display = "none";
+      }, 5e3);
+    }
+    function clearFormErrors() {
+      $$(".auth-error-message").forEach((el) => el.style.display = "none");
+    }
+    function setButtonLoading(button, loading) {
+      if (loading) {
+        button.setAttribute("data-loading", "true");
+        button.style.opacity = "0.7";
+        button.style.pointerEvents = "none";
+      } else {
+        button.removeAttribute("data-loading");
+        button.style.opacity = "1";
+        button.style.pointerEvents = "auto";
+      }
+    }
+    function showNotification(msg, type = "info") {
+      const el = document.createElement("div");
+      el.style.cssText = `position:fixed;top:20px;right:20px;padding:16px 24px;background:${type === "success" ? "#00a86b" : type === "error" ? "#dc3545" : "#333"};color:white;border-radius:8px;z-index:10001;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;`;
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = "0";
+        setTimeout(() => el.remove(), 300);
+      }, 3e3);
+    }
+    function setupAuthHandlers() {
+      debug.log("Setting up auth handlers");
+      const registerModal = getRegisterModal();
+      if (!registerModal) {
+        debug.log("Register modal not found");
+        return;
+      }
+      const form = $('[data-register="form-wrap"]', registerModal);
+      if (!form) {
+        debug.log("Auth form not found in register modal");
+        return;
+      }
+      debug.log("Found form in register modal");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+      });
+      const emailSigninBtn = $('[data-register="email-signin"]', registerModal);
+      if (emailSigninBtn) {
+        emailSigninBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          debug.log("Email signin clicked");
+          showLoginStep();
+        });
+      }
+      const registerLinks = $$('[data-register="register-link"]', registerModal);
+      registerLinks.forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          debug.log("Register link clicked");
+          showRegisterStep();
+        });
+      });
+      const loginLinks = $$('[data-register="login-link"]', registerModal);
+      loginLinks.forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          debug.log("Login link clicked");
+          showLoginStep();
+        });
+      });
+      const backBtns = $$('[data-register="btn-back"]', registerModal);
+      backBtns.forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          debug.log("Back button clicked");
+          showInitialStep();
+        });
+      });
+      const nextBtn = $('[data-register="btn-next"]', registerModal);
+      if (nextBtn) {
+        nextBtn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          debug.log("Next button clicked (register)");
+          clearFormErrors();
+          const firstName = $("#first_name", registerModal)?.value || $('input[name="first_name"]', registerModal)?.value || "";
+          const lastName = $("#last_name", registerModal)?.value || $('input[name="last_name"]', registerModal)?.value || "";
+          const email = $("#email-sign-in", registerModal)?.value || $('input[name="email-sign-in"]', registerModal)?.value || "";
+          const password = $("#password-signin", registerModal)?.value || $('input[name="password-signin"]', registerModal)?.value || "";
+          const passwordConfirm = $("#password-signin-again", registerModal)?.value || $('input[name="password-signin-again"]', registerModal)?.value || "";
+          debug.log("Form values:", { firstName, lastName, email, hasPassword: !!password });
+          if (!firstName || !lastName) {
+            showFormError(form, "Bitte Vor- und Nachnamen eingeben");
+            return;
+          }
+          if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+            showFormError(form, "Bitte eine g\xFCltige E-Mail-Adresse eingeben");
+            return;
+          }
+          if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+            showFormError(form, "Passwort: min. 8 Zeichen, 1 Gro\xDFbuchstabe, 1 Kleinbuchstabe, 1 Zahl und 1 Sonderzeichen");
+            return;
+          }
+          if (password !== passwordConfirm) {
+            showFormError(form, "Passw\xF6rter stimmen nicht \xFCberein");
+            return;
+          }
+          const dateOfBirthRaw = $("#date-of-birth", registerModal)?.value || $('input[name="date-of-birth"]', registerModal)?.value || $('input[name="dateOfBirth"]', registerModal)?.value || $('input[type="date"]', registerModal)?.value || "";
+          if (!dateOfBirthRaw) {
+            showFormError(form, "Bitte Geburtsdatum eingeben");
+            return;
+          }
+          const dateOfBirth = new Date(dateOfBirthRaw).toISOString().split("T")[0];
+          const gender = $("#gender-register", registerModal)?.value || $('select[name="gender-register"]', registerModal)?.value || $('select[name="gender"]', registerModal)?.value || "";
+          if (!gender) {
+            showFormError(form, "Bitte Geschlecht ausw\xE4hlen");
+            return;
+          }
+          pendingRegistration = { firstName, lastName, email, password, dateOfBirth, gender };
+          setButtonLoading(nextBtn, true);
+          try {
+            await register(pendingRegistration);
+            showNotification("Registrierung erfolgreich! Bitte Code eingeben.", "success");
+            showCodeStep();
+          } catch (error) {
+            debug.error("Registration error:", error);
+            showFormError(form, error.message);
+          } finally {
+            setButtonLoading(nextBtn, false);
+          }
+        });
+      }
+      const signinBtn = $('[data-register="btn-signin"]', registerModal);
+      if (signinBtn) {
+        signinBtn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          debug.log("Signin button clicked");
+          clearFormErrors();
+          const email = $("#email-login", registerModal)?.value || $('input[name="email-login"]', registerModal)?.value || "";
+          const password = $("#password-login", registerModal)?.value || $('input[name="password-login"]', registerModal)?.value || "";
+          debug.log("Login attempt:", email);
+          if (!email || !password) {
+            showFormError(form, "Bitte E-Mail und Passwort eingeben");
+            return;
+          }
+          setButtonLoading(signinBtn, true);
+          try {
+            await login(email, password);
+            showNotification("Anmeldung erfolgreich!", "success");
+            closeModal();
+            updateAuthUI();
+            openCalendlyModal();
+          } catch (error) {
+            debug.error("Login error:", error);
+            showFormError(form, error.message);
+          } finally {
+            setButtonLoading(signinBtn, false);
+          }
+        });
+      }
+      const codeInputs = $$('input[name^="code-"]', registerModal);
+      codeInputs.forEach((input, index) => {
+        input.addEventListener("input", (e) => {
+          const value = e.target.value;
+          if (value.length === 1 && index < codeInputs.length - 1) {
+            codeInputs[index + 1].focus();
+          }
+        });
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Backspace" && !e.target.value && index > 0) {
+            codeInputs[index - 1].focus();
+          }
+        });
+      });
+      const codeConfirmBtn = $('[data-register="btn-code-confirm"]', registerModal);
+      if (codeConfirmBtn) {
+        codeConfirmBtn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          debug.log("Code confirm clicked");
+          clearFormErrors();
+          let code = "";
+          codeInputs.forEach((input) => {
+            code += input.value;
+          });
+          debug.log("Code entered:", code);
+          if (code.length !== 6) {
+            showFormError(form, "Bitte den vollst\xE4ndigen 6-stelligen Code eingeben");
+            return;
+          }
+          setButtonLoading(codeConfirmBtn, true);
+          try {
+            await verifyEmail(code);
+            showNotification("E-Mail erfolgreich verifiziert!", "success");
+            closeModal();
+            updateAuthUI();
+          } catch (error) {
+            debug.error("Verification error:", error);
+            showFormError(form, error.message);
+          } finally {
+            setButtonLoading(codeConfirmBtn, false);
+          }
+        });
+      }
+      const resendLink = $('[data-register="code-resend"]', registerModal);
+      if (resendLink) {
+        resendLink.addEventListener("click", async (e) => {
+          e.preventDefault();
+          debug.log("Resend code clicked");
+          try {
+            await resendCode();
+            showNotification("Code wurde erneut gesendet", "success");
+          } catch (error) {
+            debug.error("Resend error:", error);
+            showNotification(error.message, "error");
+          }
+        });
+      }
+      const forgetLink = $('[data-register="password-forget"]', registerModal);
+      if (forgetLink) {
+        forgetLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          debug.log("Password forget clicked");
+          showNotification("Passwort-Reset wird noch implementiert", "info");
+        });
+      }
+      const googleBtn = $('[data-register="google-signin"]', registerModal);
+      if (googleBtn) {
+        googleBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          debug.log("Google signin clicked");
+          showNotification("Google-Anmeldung wird noch implementiert", "info");
+        });
+      }
+      const appleBtn = $('[data-register="apple-signin"]', registerModal);
+      if (appleBtn) {
+        appleBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          debug.log("Apple signin clicked");
+          showNotification("Apple-Anmeldung wird noch implementiert", "info");
+        });
+      }
+      debug.log("Auth handlers setup complete");
+    }
+    function updateAuthUI() {
+      const isAuth = isAuthenticated();
+      const user = getCurrentUser();
+      debug.log("Updating auth UI, authenticated:", isAuth, user);
+      $$('[data-auth-show="logged-in"]').forEach((el) => {
+        el.style.display = isAuth ? "" : "none";
+      });
+      const path = window.location.pathname;
+      const isHomepageOrVision = path === "/" || path === "/en" || path === "/en/" || path.includes("/vision");
+      $$('[data-auth-show="logged-out"]').forEach((el) => {
+        if (el.classList.contains("nav_user")) {
+          if (isHomepageOrVision) {
+            el.style.display = "none";
+          } else {
+            el.style.display = "";
+          }
+        } else {
+          el.style.display = !isAuth ? "" : "none";
+        }
+      });
+      if (user) {
+        $$('[data-auth-user="name"]').forEach((el) => {
+          el.textContent = user.name;
+        });
+        $$('[data-auth-user="email"]').forEach((el) => {
+          el.textContent = user.email;
+        });
+      }
+    }
+    const CALENDLY_URL = "https://calendly.com/j-erdweg-longtermhealth/biomarker-bluttest";
+    function openCalendlyModal() {
+      debug.log("Opening Calendly modal");
+      const user = getCurrentUser();
+      const userName = user?.name || localStorage.getItem("userName") || "";
+      const userEmail = user?.email || localStorage.getItem("userEmail") || "";
+      let overlay = document.getElementById("calendly-modal-overlay");
+      if (overlay) {
+        const container2 = document.getElementById("calendly-embed-container");
+        if (container2)
+          container2.innerHTML = "";
+        overlay.style.display = "flex";
+        setTimeout(() => {
+          overlay.style.opacity = "1";
+        }, 10);
+        injectCalendlyWidget(userName, userEmail);
+        return;
+      }
+      overlay = document.createElement("div");
+      overlay.id = "calendly-modal-overlay";
+      overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s;";
+      const box = document.createElement("div");
+      box.style.cssText = "background:#fff;border-radius:12px;width:90vw;max-width:700px;height:85vh;max-height:750px;position:relative;overflow:hidden;";
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = "\u2715";
+      closeBtn.style.cssText = "position:absolute;top:12px;right:16px;z-index:10;background:none;border:none;font-size:20px;cursor:pointer;color:#333;";
+      closeBtn.addEventListener("click", closeCalendlyModal);
+      const container = document.createElement("div");
+      container.id = "calendly-embed-container";
+      container.style.cssText = "width:100%;height:100%;";
+      box.appendChild(closeBtn);
+      box.appendChild(container);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay)
+          closeCalendlyModal();
+      });
+      setTimeout(() => {
+        overlay.style.opacity = "1";
+      }, 10);
+      injectCalendlyWidget(userName, userEmail);
+      setupCalendlyListener();
+    }
+    function injectCalendlyWidget(name, email) {
+      const container = document.getElementById("calendly-embed-container");
+      if (!container)
+        return;
+      let url = CALENDLY_URL + "?hide_gdpr_banner=1";
+      if (name)
+        url += "&name=" + encodeURIComponent(name);
+      if (email)
+        url += "&email=" + encodeURIComponent(email);
+      const widget = document.createElement("div");
+      widget.className = "calendly-inline-widget";
+      widget.setAttribute("data-url", url);
+      widget.style.cssText = "min-width:100%;height:100%;";
+      container.appendChild(widget);
+      if (!document.querySelector('script[src*="assets.calendly.com"]')) {
+        const script = document.createElement("script");
+        script.src = "https://assets.calendly.com/assets/external/widget.js";
+        script.async = true;
+        document.body.appendChild(script);
+      } else if (window.Calendly) {
+        window.Calendly.initInlineWidget({
+          url,
+          parentElement: container
+        });
+      }
+      debug.log("Calendly widget injected with name:", name, "email:", email);
+    }
+    function setupCalendlyListener() {
+      window.addEventListener("message", (e) => {
+        if (e.origin !== "https://calendly.com")
+          return;
+        if (e.data?.event === "calendly.event_scheduled") {
+          debug.log("Calendly event scheduled:", e.data);
+          const user = getCurrentUser();
+          const bookingData = {
+            userId: user?.id || localStorage.getItem("userId"),
+            userName: user?.name || localStorage.getItem("userName"),
+            userEmail: user?.email || localStorage.getItem("userEmail"),
+            eventUri: e.data.payload?.event?.uri,
+            inviteeUri: e.data.payload?.invitee?.uri,
+            scheduledAt: (/* @__PURE__ */ new Date()).toISOString()
+          };
+          debug.log("Booking data:", bookingData);
+          localStorage.setItem("lastBooking", JSON.stringify(bookingData));
+          setTimeout(() => {
+            closeCalendlyModal();
+            showNotification("Termin erfolgreich gebucht!", "success");
+          }, 1500);
+        }
+      });
+    }
+    function closeCalendlyModal() {
+      const overlay = document.getElementById("calendly-modal-overlay");
+      if (!overlay)
+        return;
+      overlay.style.opacity = "0";
+      setTimeout(() => {
+        overlay.style.display = "none";
+      }, 300);
+      debug.log("Calendly modal closed");
+    }
+    function removeUserDropdown() {
+      const existing = document.getElementById("nav-user-dropdown");
+      if (existing)
+        existing.remove();
+    }
+    function createUserDropdown(anchorEl) {
+      removeUserDropdown();
+      const user = getCurrentUser();
+      if (!user)
+        return;
+      const dropdown = document.createElement("div");
+      dropdown.id = "nav-user-dropdown";
+      dropdown.style.cssText = "position:absolute;top:100%;right:0;margin-top:8px;background:#1a1a2e;color:#fff;border-radius:10px;padding:16px 20px;min-width:220px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.3);font-family:inherit;";
+      const name = document.createElement("div");
+      name.textContent = user.name || "";
+      name.style.cssText = "font-size:15px;font-weight:600;margin-bottom:4px;";
+      const email = document.createElement("div");
+      email.textContent = user.email || "";
+      email.style.cssText = "font-size:13px;opacity:0.7;margin-bottom:14px;";
+      const logoutBtn = document.createElement("button");
+      logoutBtn.textContent = "Abmelden";
+      logoutBtn.setAttribute("data-auth-logout", "");
+      logoutBtn.style.cssText = "display:block;width:100%;padding:8px 0;background:none;border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-size:14px;cursor:pointer;transition:background 0.2s;";
+      logoutBtn.addEventListener("mouseenter", () => {
+        logoutBtn.style.background = "rgba(255,255,255,0.1)";
+      });
+      logoutBtn.addEventListener("mouseleave", () => {
+        logoutBtn.style.background = "none";
+      });
+      dropdown.appendChild(name);
+      dropdown.appendChild(email);
+      dropdown.appendChild(logoutBtn);
+      const wrapper = anchorEl.closest(".nav_user") || anchorEl;
+      wrapper.style.position = "relative";
+      wrapper.appendChild(dropdown);
+    }
+    function setupNavUserHandler() {
+      const path = window.location.pathname;
+      const isHomepageOrVision = path === "/" || path === "/en" || path === "/en/" || path.includes("/vision");
+      if (isHomepageOrVision)
+        return;
+      document.addEventListener("click", (e) => {
+        const navUser = e.target.closest(".nav_user");
+        if (!navUser) {
+          removeUserDropdown();
+          return;
+        }
+        e.preventDefault();
+        if (!isAuthenticated()) {
+          openModal();
+        } else {
+          const existing = document.getElementById("nav-user-dropdown");
+          if (existing) {
+            removeUserDropdown();
+          } else {
+            createUserDropdown(navUser);
+          }
+        }
+      });
+    }
+    function setupLogoutHandlers() {
+      document.addEventListener("click", (e) => {
+        const logoutBtn = e.target.closest("[data-auth-logout]");
+        if (!logoutBtn)
+          return;
+        e.preventDefault();
+        removeUserDropdown();
+        logout();
+        updateAuthUI();
+        showNotification("Erfolgreich abgemeldet", "info");
+        debug.log("User logged out via button");
+      });
+    }
+    function init() {
+      debug.log("Initializing global auth module");
+      setupAuthHandlers();
+      setupLogoutHandlers();
+      setupNavUserHandler();
+      updateAuthUI();
+      window.Auth = {
+        isAuthenticated,
+        getCurrentUser,
+        login,
+        register,
+        verifyEmail,
+        resendCode,
+        logout,
+        openModal,
+        closeModal,
+        openCalendly: openCalendlyModal,
+        closeCalendly: closeCalendlyModal,
+        updateUI: updateAuthUI
+      };
+      debug.log("Global auth module ready. Use Auth.openModal() to open.");
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+  })();
+})();
+//# sourceMappingURL=global-auth.js.map

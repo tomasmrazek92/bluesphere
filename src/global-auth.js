@@ -723,8 +723,13 @@
       path.includes('/vision');
 
     $$('[data-auth-show="logged-out"]').forEach((el) => {
-      if (isHomepageOrVision && el.classList.contains('nav_user')) {
-        el.style.display = 'none';
+      if (el.classList.contains('nav_user')) {
+        if (isHomepageOrVision) {
+          el.style.display = 'none';
+        } else {
+          // On non-homepage pages, always show .nav_user regardless of auth state
+          el.style.display = '';
+        }
       } else {
         el.style.display = !isAuth ? '' : 'none';
       }
@@ -863,6 +868,85 @@
   }
 
   // ========================================
+  // NAV USER ICON HANDLER
+  // ========================================
+  function removeUserDropdown() {
+    const existing = document.getElementById('nav-user-dropdown');
+    if (existing) existing.remove();
+  }
+
+  function createUserDropdown(anchorEl) {
+    removeUserDropdown();
+
+    const user = getCurrentUser();
+    if (!user) return;
+
+    const dropdown = document.createElement('div');
+    dropdown.id = 'nav-user-dropdown';
+    dropdown.style.cssText =
+      'position:absolute;top:100%;right:0;margin-top:8px;background:#1a1a2e;color:#fff;' +
+      'border-radius:10px;padding:16px 20px;min-width:220px;z-index:9999;' +
+      'box-shadow:0 8px 24px rgba(0,0,0,0.3);font-family:inherit;';
+
+    const name = document.createElement('div');
+    name.textContent = user.name || '';
+    name.style.cssText = 'font-size:15px;font-weight:600;margin-bottom:4px;';
+
+    const email = document.createElement('div');
+    email.textContent = user.email || '';
+    email.style.cssText = 'font-size:13px;opacity:0.7;margin-bottom:14px;';
+
+    const logoutBtn = document.createElement('button');
+    logoutBtn.textContent = 'Abmelden';
+    logoutBtn.setAttribute('data-auth-logout', '');
+    logoutBtn.style.cssText =
+      'display:block;width:100%;padding:8px 0;background:none;border:1px solid rgba(255,255,255,0.2);' +
+      'border-radius:6px;color:#fff;font-size:14px;cursor:pointer;transition:background 0.2s;';
+    logoutBtn.addEventListener('mouseenter', () => { logoutBtn.style.background = 'rgba(255,255,255,0.1)'; });
+    logoutBtn.addEventListener('mouseleave', () => { logoutBtn.style.background = 'none'; });
+
+    dropdown.appendChild(name);
+    dropdown.appendChild(email);
+    dropdown.appendChild(logoutBtn);
+
+    // Position relative to anchor
+    const wrapper = anchorEl.closest('.nav_user') || anchorEl;
+    wrapper.style.position = 'relative';
+    wrapper.appendChild(dropdown);
+  }
+
+  function setupNavUserHandler() {
+    const path = window.location.pathname;
+    const isHomepageOrVision = path === '/' || path === '/en' || path === '/en/' ||
+      path.includes('/vision');
+    if (isHomepageOrVision) return;
+
+    document.addEventListener('click', (e) => {
+      const navUser = e.target.closest('.nav_user');
+
+      // Close dropdown when clicking outside
+      if (!navUser) {
+        removeUserDropdown();
+        return;
+      }
+
+      e.preventDefault();
+
+      if (!isAuthenticated()) {
+        openModal();
+      } else {
+        // Toggle dropdown
+        const existing = document.getElementById('nav-user-dropdown');
+        if (existing) {
+          removeUserDropdown();
+        } else {
+          createUserDropdown(navUser);
+        }
+      }
+    });
+  }
+
+  // ========================================
   // LOGOUT HANDLER
   // ========================================
   function setupLogoutHandlers() {
@@ -870,6 +954,7 @@
       const logoutBtn = e.target.closest('[data-auth-logout]');
       if (!logoutBtn) return;
       e.preventDefault();
+      removeUserDropdown();
       logout();
       updateAuthUI();
       showNotification('Erfolgreich abgemeldet', 'info');
@@ -885,6 +970,7 @@
 
     setupAuthHandlers();
     setupLogoutHandlers();
+    setupNavUserHandler();
     updateAuthUI();
 
     // Expose global API
