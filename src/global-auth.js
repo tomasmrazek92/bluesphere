@@ -344,20 +344,31 @@
           debug.log('Personal-info step: datepicker input:', dpInput ? 'found' : 'not found');
 
           if (dpInput) {
-            // Init jQuery datepicker if available
-            if (window.jQuery) {
-              try {
-                const $dp = window.jQuery(dpInput);
-                if ($dp.datepicker && !$dp.data('datepicker')) {
-                  $dp.datepicker({ format: 'dd.mm.yyyy', autoHide: true });
-                  debug.log('Datepicker initialized');
-                } else {
-                  debug.log('Datepicker already initialized or not available');
-                }
-              } catch (e) {
-                debug.log('Datepicker init failed:', e.message);
+            // Load and init fengyuanchen datepicker if not already present
+            function initDatepicker() {
+              if (!window.jQuery) return;
+              const $dp = window.jQuery(dpInput);
+              if (typeof $dp.datepicker !== 'function') {
+                debug.log('Datepicker plugin not loaded, loading...');
+                const css = document.createElement('link');
+                css.rel = 'stylesheet';
+                css.href = 'https://cdn.jsdelivr.net/npm/@chenfengyuan/datepicker@1/dist/datepicker.min.css';
+                document.head.appendChild(css);
+                const js = document.createElement('script');
+                js.src = 'https://cdn.jsdelivr.net/npm/@chenfengyuan/datepicker@1/dist/datepicker.min.js';
+                js.onload = () => {
+                  window.jQuery(dpInput).datepicker({ format: 'dd.mm.yyyy', autoHide: true });
+                  debug.log('Datepicker loaded and initialized');
+                };
+                document.head.appendChild(js);
+              } else if (!$dp.data('datepicker')) {
+                $dp.datepicker({ format: 'dd.mm.yyyy', autoHide: true });
+                debug.log('Datepicker initialized');
+              } else {
+                debug.log('Datepicker already initialized');
               }
             }
+            initDatepicker();
 
             // Bind calendar icon click
             const field = dpInput.closest('.form_field');
@@ -371,9 +382,14 @@
                 e.stopPropagation();
                 debug.log('Calendar icon clicked');
                 dpInput.focus();
-                dpInput.click();
                 if (window.jQuery) {
-                  try { window.jQuery(dpInput).datepicker('show'); } catch (err) { /* */ }
+                  try {
+                    const $dp = window.jQuery(dpInput);
+                    debug.log('datepicker data:', !!$dp.data('datepicker'), 'fn:', typeof $dp.datepicker);
+                    $dp.datepicker('show');
+                  } catch (err) {
+                    debug.log('datepicker show error:', err.message);
+                  }
                 }
               });
             }
