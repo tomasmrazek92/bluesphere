@@ -247,16 +247,23 @@
 
     container.innerHTML = '';
     container.style.overflow = 'visible';
+    container.style.height = 'auto';
+    container.style.minHeight = '1100px';
     const widget = document.createElement('div');
     widget.className = 'calendly-widget-container';
-    widget.style.cssText = 'min-width:100%;min-height:1100px;';
+    widget.style.cssText = 'min-width:100%;height:1100px;';
     container.appendChild(widget);
 
     // Auto-resize to match Calendly iframe content height
     window.addEventListener('message', function calendlyResize(e) {
       if (e.data?.event === 'calendly.page_height' && e.data?.payload?.height) {
         const h = Math.ceil(parseFloat(e.data.payload.height));
-        if (h > 0) widget.style.minHeight = h + 'px';
+        if (h > 0) {
+          widget.style.height = h + 'px';
+          container.style.minHeight = h + 'px';
+          const iframe = widget.querySelector('iframe');
+          if (iframe) iframe.style.height = h + 'px';
+        }
       }
     });
 
@@ -274,6 +281,12 @@
         });
         // Add class after init so widget.css styles the iframe
         widget.classList.add('calendly-inline-widget');
+        // Ensure iframe fills container
+        const iframe = widget.querySelector('iframe');
+        if (iframe) {
+          iframe.style.height = '100%';
+          iframe.style.minHeight = '1100px';
+        }
         debug.log('Inline Calendly widget initialized');
       } catch (err) {
         debug.error('Calendly.initInlineWidget failed:', err);
