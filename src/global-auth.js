@@ -475,6 +475,16 @@
       }
     });
 
+    // Make calendar icon click open the datepicker
+    registerModal.querySelectorAll('input[data-toggle="datepicker"]').forEach((input) => {
+      const field = input.closest('.form_field');
+      const icon = field?.querySelector('.form_field-icon');
+      if (icon) {
+        icon.style.cursor = 'pointer';
+        icon.addEventListener('click', () => input.focus());
+      }
+    });
+
     form.addEventListener('submit', (e) => {
       e.preventDefault();
     });
