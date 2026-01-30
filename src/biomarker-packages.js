@@ -139,7 +139,7 @@
 
     titleElements.forEach((titleEl) => {
       let card = titleEl.parentElement;
-      while (card && !card.classList.contains('w-dyn-item') && card.tagName !== 'SECTION') {
+      while (card && card.tagName !== 'SECTION') {
         const hasImg = card.querySelector('[data-packages="img"], [data-packages=" img"]');
         const hasPrice = card.querySelector('[data-packages="price"]');
         const hasListItems = card.querySelector('[data-packages="list-item-title"]');
