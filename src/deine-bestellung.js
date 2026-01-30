@@ -50,8 +50,9 @@
   // NOTIFICATION
   // ========================================
   function showNotification(msg, type = 'info') {
+    const navBottom = document.querySelector('.navbar')?.getBoundingClientRect().bottom || 80;
     const el = document.createElement('div');
-    el.style.cssText = `position:fixed;top:20px;right:20px;padding:16px 24px;background:${type === 'success' ? '#00a86b' : type === 'error' ? '#dc3545' : '#333'};color:white;border-radius:8px;z-index:10001;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;`;
+    el.style.cssText = `position:fixed;top:${navBottom + 8}px;right:20px;padding:16px 24px;background:${type === 'success' ? '#00a86b' : type === 'error' ? '#dc3545' : '#333'};color:white;border-radius:8px;z-index:10001;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;`;
     el.textContent = msg;
     document.body.appendChild(el);
     setTimeout(() => {

@@ -60,10 +60,11 @@
   // NOTIFICATION
   // ========================================
   function showNotification(message, type = 'info') {
+    const navBottom = document.querySelector('.navbar')?.getBoundingClientRect().bottom || 80;
     const notification = document.createElement('div');
     notification.style.cssText = `
       position: fixed;
-      top: 20px;
+      top: ${navBottom + 8}px;
       right: 20px;
       padding: 16px 24px;
       background: ${type === 'success' ? '#00a86b' : type === 'error' ? '#dc3545' : '#333'};

@@ -352,8 +352,9 @@
       return;
     }
 
+    const navBottom = document.querySelector('.navbar')?.getBoundingClientRect().bottom || 80;
     const el = document.createElement('div');
-    el.style.cssText = `position:fixed;top:20px;right:20px;padding:16px 24px;background:${type === 'success' ? '#00a86b' : type === 'error' ? '#dc3545' : '#333'};color:white;border-radius:8px;z-index:10001;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;`;
+    el.style.cssText = `position:fixed;top:${navBottom + 8}px;right:20px;padding:16px 24px;background:${type === 'success' ? '#00a86b' : type === 'error' ? '#dc3545' : '#333'};color:white;border-radius:8px;z-index:10001;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;`;
     el.textContent = msg;
     document.body.appendChild(el);
     setTimeout(() => {
@@ -508,7 +509,7 @@
         badge = document.createElement('div');
         badge.className = 'nav_cart-badge';
         badge.style.cssText =
-          'position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;' +
+          'position:absolute;top:15px;right:15px;min-width:16px;height:16px;' +
           'background:#245bec;color:#fff;border-radius:50%;font-size:10px;' +
           'font-weight:600;display:flex;align-items:center;justify-content:center;' +
           'line-height:1;padding:0 3px;pointer-events:none;';

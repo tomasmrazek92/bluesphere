@@ -420,6 +420,8 @@
 
   function clearFormErrors() {
     $$('.auth-error-message').forEach((el) => (el.style.display = 'none'));
+    $$('.form_validation.show').forEach((el) => el.classList.remove('show'));
+    $$('.form_field.error').forEach((el) => el.classList.remove('error'));
   }
 
   function setButtonLoading(button, loading) {
@@ -435,8 +437,9 @@
   }
 
   function showNotification(msg, type = 'info') {
+    const navBottom = document.querySelector('.navbar')?.getBoundingClientRect().bottom || 80;
     const el = document.createElement('div');
-    el.style.cssText = `position:fixed;top:20px;right:20px;padding:16px 24px;background:${type === 'success' ? '#00a86b' : type === 'error' ? '#dc3545' : '#333'};color:white;border-radius:8px;z-index:10001;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;`;
+    el.style.cssText = `position:fixed;top:${navBottom + 8}px;right:20px;padding:16px 24px;background:${type === 'success' ? '#00a86b' : type === 'error' ? '#dc3545' : '#333'};color:white;border-radius:8px;z-index:10001;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;`;
     el.textContent = msg;
     document.body.appendChild(el);
     setTimeout(() => {
@@ -522,6 +525,51 @@
       };
     }
 
+    // --- Per-field inline validation helpers ---
+    function showFieldError(input, message) {
+      const wrap = input.closest('.form_field-wrap');
+      if (!wrap) return;
+      const field = wrap.querySelector('.form_field');
+      if (field) field.classList.add('error');
+      const msg = wrap.querySelector('.form_validation');
+      if (msg) {
+        msg.textContent = message;
+        msg.classList.add('show');
+      }
+    }
+
+    function clearFieldError(input) {
+      const wrap = input.closest('.form_field-wrap');
+      if (!wrap) return;
+      const field = wrap.querySelector('.form_field');
+      if (field) field.classList.remove('error');
+      const msg = wrap.querySelector('.form_validation');
+      if (msg) msg.classList.remove('show');
+    }
+
+    function validatePasswordField(passwordInput) {
+      if (!passwordInput) return;
+      const v = passwordInput.value;
+      if (!v) return; // don't show error while empty (wait for blur)
+      if (v.length < 8 || !/[A-Z]/.test(v) || !/[a-z]/.test(v) ||
+          !/[0-9]/.test(v) || !/[^A-Za-z0-9]/.test(v)) {
+        showFieldError(passwordInput, 'Mindestens 8 Zeichen, Groß-/Kleinbuchstabe, Zahl und Sonderzeichen');
+      } else {
+        clearFieldError(passwordInput);
+      }
+    }
+
+    function validateConfirmField(confirmInput, passwordInput) {
+      if (!confirmInput || !passwordInput) return;
+      const v = confirmInput.value;
+      if (!v) return;
+      if (v !== passwordInput.value) {
+        showFieldError(confirmInput, 'Passwörter stimmen nicht überein');
+      } else {
+        clearFieldError(confirmInput);
+      }
+    }
+
     function isStep1Valid() {
       const f = getStep1Fields();
       if (!f.firstName || !f.lastName) return false;
@@ -545,6 +593,42 @@
     if (registerStep) {
       registerStep.addEventListener('input', updateStep1Button);
       updateStep1Button();
+
+      // Per-field inline validation
+      const fnInput = registerStep.querySelector('#first_name, input[name="first_name"]');
+      const lnInput = registerStep.querySelector('#last_name, input[name="last_name"]');
+      const emInput = registerStep.querySelector('#email-sign-in, input[name="email-sign-in"]');
+      const pwInput = registerStep.querySelector('#password-signin, input[name="password-signin"]');
+      const pw2Input = registerStep.querySelector('#password-signin-again, input[name="password-signin-again"]');
+
+      // On input: clear error as soon as valid, show password errors live
+      if (fnInput) fnInput.addEventListener('input', () => { if (fnInput.value.trim()) clearFieldError(fnInput); });
+      if (lnInput) lnInput.addEventListener('input', () => { if (lnInput.value.trim()) clearFieldError(lnInput); });
+      if (emInput) emInput.addEventListener('input', () => {
+        if (emInput.value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emInput.value)) clearFieldError(emInput);
+      });
+      if (pwInput) pwInput.addEventListener('input', () => {
+        validatePasswordField(pwInput);
+        if (pw2Input && pw2Input.value) validateConfirmField(pw2Input, pwInput);
+      });
+      if (pw2Input) pw2Input.addEventListener('input', () => validateConfirmField(pw2Input, pwInput));
+
+      // On blur: show error if empty/invalid
+      if (fnInput) fnInput.addEventListener('blur', () => {
+        if (!fnInput.value.trim()) showFieldError(fnInput, 'Bitte Vornamen eingeben');
+      });
+      if (lnInput) lnInput.addEventListener('blur', () => {
+        if (!lnInput.value.trim()) showFieldError(lnInput, 'Bitte Nachnamen eingeben');
+      });
+      if (emInput) emInput.addEventListener('blur', () => {
+        if (!emInput.value) showFieldError(emInput, 'Bitte E-Mail eingeben');
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emInput.value)) showFieldError(emInput, 'Bitte gültige E-Mail eingeben');
+      });
+      if (pwInput) pwInput.addEventListener('blur', () => validatePasswordField(pwInput));
+      if (pw2Input) pw2Input.addEventListener('blur', () => {
+        if (!pw2Input.value) showFieldError(pw2Input, 'Bitte Passwort bestätigen');
+        else validateConfirmField(pw2Input, pwInput);
+      });
     }
 
     if (nextBtn) {
@@ -653,6 +737,41 @@
         }
       });
       updateStep2Button();
+
+      // Per-field inline validation for step 2
+      const dobInput = personalInfoStep.querySelector('#dateOfBirth, input[name="dateOfBirth"]');
+      const genderSelect = personalInfoStep.querySelector('select');
+      const requiredCbs = [...personalInfoStep.querySelectorAll('input[type="checkbox"][required]')];
+
+      if (dobInput) dobInput.addEventListener('blur', () => {
+        if (!dobInput.value) showFieldError(dobInput, 'Bitte Geburtsdatum eingeben');
+        else clearFieldError(dobInput);
+      });
+      if (dobInput) dobInput.addEventListener('input', () => {
+        if (dobInput.value) clearFieldError(dobInput);
+      });
+
+      if (genderSelect) {
+        genderSelect.addEventListener('change', () => {
+          if (genderSelect.value) clearFieldError(genderSelect);
+          else showFieldError(genderSelect, 'Bitte Geschlecht auswählen');
+        });
+      }
+      // nice-select gender validation
+      personalInfoStep.addEventListener('click', (e) => {
+        if (e.target.closest('.nice-select .option') && genderSelect) {
+          setTimeout(() => {
+            if (getStep2Gender()) clearFieldError(genderSelect);
+          }, 100);
+        }
+      });
+
+      requiredCbs.forEach((cb) => {
+        cb.addEventListener('change', () => {
+          if (cb.checked) clearFieldError(cb);
+          else showFieldError(cb, 'Bitte akzeptieren');
+        });
+      });
     }
 
     if (sendBtn) {
