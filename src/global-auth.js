@@ -463,8 +463,8 @@
 
     debug.log('Found form in register modal');
 
-    // Inject missing labels for password fields (floating label pattern)
-    registerModal.querySelectorAll('input[type="password"]').forEach((input) => {
+    // Inject missing labels for fields without them (floating label pattern)
+    registerModal.querySelectorAll('input[type="password"], input[data-toggle="datepicker"]').forEach((input) => {
       const field = input.closest('.form_field');
       if (field && !field.querySelector('.form_label')) {
         const label = document.createElement('label');
@@ -718,12 +718,17 @@
       return gender;
     }
 
+    function isValidDOB(val) {
+      if (!val) return false;
+      return /^\d{1,2}\.\d{1,2}\.\d{4}$/.test(val);
+    }
+
     function isStep2Valid() {
       if (!personalInfoStep) return false;
       const dob = ($('#dateOfBirth', personalInfoStep) ||
         $('input[name="dateOfBirth"]', personalInfoStep) ||
         $('input[data-toggle="datepicker"]', personalInfoStep))?.value || '';
-      if (!dob) return false;
+      if (!isValidDOB(dob)) return false;
       if (!getStep2Gender()) return false;
       const requiredCheckboxes = $$('input[type="checkbox"][required]', personalInfoStep);
       if (requiredCheckboxes.some((cb) => !cb.checked)) return false;
@@ -753,13 +758,30 @@
       const genderSelect = personalInfoStep.querySelector('select');
       const requiredCbs = [...personalInfoStep.querySelectorAll('input[type="checkbox"][required]')];
 
-      if (dobInput) dobInput.addEventListener('blur', () => {
-        if (!dobInput.value) showFieldError(dobInput, 'Bitte Geburtsdatum eingeben');
-        else clearFieldError(dobInput);
-      });
-      if (dobInput) dobInput.addEventListener('input', () => {
-        if (dobInput.value) clearFieldError(dobInput);
-      });
+      if (dobInput) {
+        dobInput.addEventListener('blur', () => {
+          if (!dobInput.value) showFieldError(dobInput, 'Bitte Geburtsdatum eingeben');
+          else if (!isValidDOB(dobInput.value)) showFieldError(dobInput, 'Format: TT.MM.JJJJ');
+          else clearFieldError(dobInput);
+        });
+        dobInput.addEventListener('input', () => {
+          if (isValidDOB(dobInput.value)) clearFieldError(dobInput);
+          updateStep2Button();
+        });
+        dobInput.addEventListener('change', () => {
+          if (isValidDOB(dobInput.value)) clearFieldError(dobInput);
+          updateStep2Button();
+        });
+        // Poll for datepicker changes (datepicker may set value without firing input/change)
+        let lastDob = dobInput.value;
+        setInterval(() => {
+          if (dobInput.value !== lastDob) {
+            lastDob = dobInput.value;
+            if (isValidDOB(dobInput.value)) clearFieldError(dobInput);
+            updateStep2Button();
+          }
+        }, 300);
+      }
 
       if (genderSelect) {
         genderSelect.addEventListener('change', () => {

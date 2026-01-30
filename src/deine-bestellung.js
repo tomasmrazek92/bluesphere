@@ -305,12 +305,15 @@
             email: email,
           },
         });
-        // Add class after init so widget.css styles the iframe
-        widget.classList.add('calendly-inline-widget');
-        // Ensure iframe fills container
+        // Apply widget styles directly (avoid adding calendly-inline-widget class
+        // which triggers Calendly's auto-scan and creates a duplicate spinner)
+        widget.style.fontSize = '16px';
+        widget.style.lineHeight = '1.2em';
         const iframe = widget.querySelector('iframe');
         if (iframe) {
+          iframe.style.display = 'inline';
           iframe.style.height = '100%';
+          iframe.style.width = '100%';
           iframe.style.minHeight = '1100px';
         }
         debug.log('Inline Calendly widget initialized');
