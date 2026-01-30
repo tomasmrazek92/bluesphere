@@ -338,6 +338,21 @@
       const type = steps[i].getAttribute('data-register-type');
       if (type === 'personal-info') {
         showStep(i);
+        // Initialize datepicker if jQuery plugin is available
+        setTimeout(() => {
+          const dpInput = steps[i].querySelector('input[data-toggle="datepicker"]');
+          if (dpInput && window.jQuery) {
+            try {
+              const $dp = window.jQuery(dpInput);
+              if ($dp.datepicker && !$dp.data('datepicker')) {
+                $dp.datepicker({ format: 'dd.mm.yyyy', autoHide: true });
+                debug.log('Datepicker initialized on personal-info step');
+              }
+            } catch (e) {
+              debug.log('Datepicker init failed:', e.message);
+            }
+          }
+        }, 100);
         return;
       }
     }
@@ -476,12 +491,28 @@
     });
 
     // Make calendar icon click open the datepicker
-    registerModal.querySelectorAll('input[data-toggle="datepicker"]').forEach((input) => {
+    const dpInputs = registerModal.querySelectorAll('input[data-toggle="datepicker"]');
+    debug.log('Datepicker inputs found:', dpInputs.length);
+    dpInputs.forEach((input) => {
       const field = input.closest('.form_field');
       const icon = field?.querySelector('.form_field-icon');
+      debug.log('Datepicker field:', field ? 'found' : 'not found', 'icon:', icon ? 'found' : 'not found');
       if (icon) {
         icon.style.cursor = 'pointer';
-        icon.addEventListener('click', () => input.focus());
+        icon.addEventListener('click', () => {
+          debug.log('Calendar icon clicked, triggering datepicker');
+          input.focus();
+          input.click();
+          // Also try jQuery datepicker trigger
+          if (window.jQuery && window.jQuery(input).datepicker) {
+            try {
+              window.jQuery(input).datepicker('show');
+              debug.log('jQuery datepicker show triggered');
+            } catch (e) {
+              debug.log('jQuery datepicker show failed:', e.message);
+            }
+          }
+        });
       }
     });
 
