@@ -110,7 +110,7 @@
   const GENDER_MAP = {
     male: 'MALE',
     female: 'FEMALE',
-    diverse: 'NON_BINARY',
+    diverse: 'OTHER',
     'non-binary': 'NON_BINARY',
     other: 'OTHER',
     'no-share': 'NO_SHARE',
@@ -1053,8 +1053,8 @@
           navUser._originalHTML = navUser.innerHTML;
         }
         navUser.innerHTML =
-          '<div style="width:28px;height:28px;border-radius:50%;background:rgba(36,91,236,0.15);' +
-          'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;' +
+          '<div style="width:35px;height:35px;border-radius:50%;background:rgba(36,91,236,0.15);' +
+          'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:400;' +
           'color:#000;font-family:inherit;line-height:1;">' + initials + '</div>';
       } else {
         // Restore original content on logout

@@ -268,7 +268,7 @@
         '<div class="cart_modal-list_item-inner" style="justify-content:center;padding:2rem;text-align:center;">' +
         '<div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem;">' +
         '<p style="font-size:1.4rem;color:#4B4B4E;">Füge ein Biomarker Paket zum Warenkorb hinzu</p>' +
-        '<a href="/biomarkers" class="button w-inline-block" style="display:inline-flex;text-decoration:none;">' +
+        '<a href="/biomarker" class="button w-inline-block" style="display:inline-flex;text-decoration:none;">' +
         '<span>ZU DEN PAKETEN</span></a>' +
         '</div></div>';
       listContainer.appendChild(emptyEl);

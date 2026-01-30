@@ -119,7 +119,7 @@
           emptyEl.style.cssText = 'text-align:center;padding:3rem 2rem;';
           emptyEl.innerHTML =
             '<p style="font-size:1.4rem;margin-bottom:1.5rem;color:#4B4B4E;">Füge ein Biomarker Paket zum Warenkorb hinzu</p>' +
-            '<a href="/biomarkers" class="button w-inline-block" style="display:inline-flex;text-decoration:none;">' +
+            '<a href="/biomarker" class="button w-inline-block" style="display:inline-flex;text-decoration:none;">' +
             '<span>ZU DEN PAKETEN</span></a>';
           orderCard.appendChild(emptyEl);
         }
@@ -527,7 +527,7 @@
         if (window.history.length > 1) {
           window.history.back();
         } else {
-          window.location.href = '/biomarkers';
+          window.location.href = '/biomarker';
         }
       });
     }
