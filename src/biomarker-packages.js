@@ -37,12 +37,14 @@
 
   // Order of packages on the page (matches the card order in Webflow)
   const PACKAGE_ORDER = [
-    'mens_health', // Card 1: Männergesundheit
-    'womens_health', // Card 2: Frauengesundheit
-    'longterm_health', // Card 3: Longtermhealth
-    'iron_metabolism', // Card 4: Eisen-Metabolismus
-    'vitamin_b_metabolism', // Card 5: Vitamin B
-    'vitamin_d', // Card 6: Vitamin D
+    'longterm_health',
+    'womens_health',
+    'mens_health',
+    'chronic_inflammation',
+    'iron_metabolism',
+    'heart_health',
+    'vitamin_b_metabolism',
+    'vitamin_d',
   ];
 
   // Get PACKAGES from CartModal (shared data)
@@ -375,25 +377,47 @@
 
         itemEl.setAttribute('data-sku', item.sku);
 
+        // Debug: log all data-cart attributes in template
+        if (index === 0) {
+          const allDataCart = itemEl.querySelectorAll('[data-cart]');
+          debug.log('Sidebar template data-cart elements:', allDataCart.length,
+            [...allDataCart].map(el => ({
+              attr: el.getAttribute('data-cart'),
+              tag: el.tagName,
+              text: el.textContent?.substring(0, 30)
+            }))
+          );
+        }
+
         const imgEl = itemEl.querySelector('[data-cart="cart-item-img"]');
         if (imgEl) {
           imgEl.src = item.image || packageData.image;
           imgEl.alt = item.name || packageData.name;
+        } else {
+          debug.log('No img element found in sidebar item');
         }
 
         const titleEl = itemEl.querySelector('[data-cart="cart-item-title"]');
-        if (titleEl) titleEl.textContent = item.name || packageData.name;
+        if (titleEl) {
+          titleEl.textContent = item.name || packageData.name;
+        } else {
+          debug.log('No title element found in sidebar item');
+        }
 
         const descEl = itemEl.querySelector('[data-cart="cart-item-desc"]');
         if (descEl) {
           const biomarkerCount = Object.keys(packageData.biomarkers).length;
           descEl.textContent = `${biomarkerCount} Biomarker`;
+        } else {
+          debug.log('No desc element found in sidebar item');
         }
 
         const priceEl = itemEl.querySelector('[data-cart="cart-item-price"]');
         if (priceEl) {
           const displayPrice = pkgPrice ? pkgPrice.final : packageData.basePrice;
           priceEl.textContent = fmtNumber(displayPrice);
+        } else {
+          debug.log('No price element found in sidebar item');
         }
 
         const priceUnitEl = itemEl.querySelector('[data-cart="cart-item-price-unit"]');

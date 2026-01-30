@@ -183,8 +183,6 @@
 
   // Modal state
   let modal = null;
-  let itemTemplate = null;
-  let listContainer = null;
 
   function getModal() {
     if (!modal) {
@@ -243,25 +241,10 @@
 
     debug('Rendering cart modal:', items.length, 'items');
 
-    listContainer = $('.cart_modal-list', m);
+    const listContainer = $('.cart_modal-list', m);
     if (!listContainer) {
       debug('List container not found');
       return;
-    }
-
-    if (!itemTemplate) {
-      const firstItem = $('.cart_modal-list_item', listContainer);
-      if (firstItem) {
-        itemTemplate = firstItem.cloneNode(true);
-        debug('Item template initialized, innerHTML:', itemTemplate.innerHTML.substring(0, 200));
-        debug('Template has data-cart attrs:', {
-          img: !!$('[data-cart="cart-item-img"]', itemTemplate),
-          title: !!$('[data-cart="cart-item-title"]', itemTemplate),
-          desc: !!$('[data-cart="cart-item-desc"]', itemTemplate),
-          price: !!$('[data-cart="cart-item-price"]', itemTemplate),
-          remove: !!$('[data-cart="cart-item-remove"]', itemTemplate),
-        });
-      }
     }
 
     $$('.cart_modal-list_item', listContainer).forEach((el) => el.remove());
@@ -272,54 +255,51 @@
       emptyEl.innerHTML =
         '<div class="cart_modal-list_item-inner" style="justify-content: center; padding: 2rem;"><div class="text-color-gray-70"><div class="text-size-small">Warenkorb ist leer</div></div></div>';
       listContainer.appendChild(emptyEl);
-    } else if (itemTemplate) {
+    } else {
       items.forEach((item) => {
         const pkg = PACKAGES[item.sku];
         if (!pkg) return;
         const priceInfo = calc.prices.find((p) => p.sku === item.sku);
+        const imgSrc = item.image || pkg.image || '';
+        const displayPrice = fmt(priceInfo?.final || pkg.basePrice);
+        const biomarkerCount = Object.keys(pkg.biomarkers).length;
 
-        const el = itemTemplate.cloneNode(true);
+        const el = document.createElement('li');
+        el.className = 'cart_modal-list_item';
+        el.setAttribute('data-cart', 'cart-item');
         el.setAttribute('data-sku', item.sku);
+        el.innerHTML = `
+          <div class="cart_modal-list_item-inner">
+            <div class="cart_modal-list_item-box">
+              <div class="cart_modal-list_item_visual">
+                <img class="cover-img" data-cart="cart-item-img" alt="${pkg.name}" loading="lazy" src="${imgSrc}">
+              </div>
+            </div>
+            <div class="cart_modal-list_item-text_wrap">
+              <div class="text-weight-medium">
+                <div data-cart="cart-item-title" class="text-size-regular">${pkg.name}</div>
+              </div>
+              <div class="text-color-gray-70">
+                <div data-cart="cart-item-desc" class="text-size-small _1percent_letter-spacing">${biomarkerCount} Biomarker</div>
+              </div>
+            </div>
+          </div>
+          <div class="cart_modal-list_item-text_wrap is-2">
+            <div class="text-weight-medium">
+              <div class="cart_modal-list_item-price-wrap">
+                <div data-cart="cart-item-price" class="text-size-regular">${displayPrice}</div>
+                <div data-cart="cart-item-price-unit" class="text-size-regular">€</div>
+              </div>
+            </div>
+            <div data-cart="cart-item-remove" class="cart_modal-list_item-trash" style="cursor:pointer;">
+              <div class="icon-embed-xxsmall w-embed"><svg width="100%" height="100%" viewBox="0 0 15 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.0139 4.8V4.24C10.0139 3.45593 10.0139 3.06389 9.85644 2.76441C9.71799 2.50098 9.49699 2.28681 9.22522 2.15259C8.91626 2 8.51174 2 7.70278 2H6.54722C5.73826 2 5.33377 2 5.02479 2.15259C4.753 2.28681 4.53203 2.50098 4.39355 2.76441C4.23611 3.06389 4.23611 3.45593 4.23611 4.24V4.8M5.68056 8.65V12.15M8.56944 8.65V12.15M0.625 4.8H13.625M12.1806 4.8V12.64C12.1806 13.8161 12.1806 14.4041 11.9444 14.8534C11.7367 15.2485 11.4052 15.5698 10.9976 15.7711C10.534 16 9.92737 16 8.71389 16H5.53611C4.32266 16 3.71594 16 3.25247 15.7711C2.84478 15.5698 2.51332 15.2485 2.3056 14.8534C2.06944 14.4041 2.06944 13.8161 2.06944 12.64V4.8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg></div>
+            </div>
+          </div>`;
 
-        // Find elements using data-cart attributes or fallback to class-based selectors
-        const img = $('[data-cart="cart-item-img"]', el) || $('img', el);
-        if (img) {
-          const imgSrc = item.image || pkg.image;
-          if (imgSrc) {
-            img.src = imgSrc;
-            img.removeAttribute('srcset');
-            img.removeAttribute('sizes');
-          }
-          img.alt = pkg.name;
-        }
-
-        // Title: data-cart attr, or first heading-like element in the text area
-        const titleEl = $('[data-cart="cart-item-title"]', el)
-          || $('.cart_modal-list_item-title', el)
-          || $('.heading-style-h6', el)
-          || $('.heading-style-h5', el);
-        if (titleEl) titleEl.textContent = pkg.name;
-
-        // Description: data-cart attr, or desc class, or text-size-small in text area
-        const descEl = $('[data-cart="cart-item-desc"]', el)
-          || $('.cart_modal-list_item-desc', el)
-          || $('.text-size-small', el);
-        if (descEl) descEl.textContent = `${Object.keys(pkg.biomarkers).length} Biomarker`;
-
-        // Price: data-cart attr, or price class, or heading in price area
-        const priceEl = $('[data-cart="cart-item-price"]', el)
-          || $('.cart_modal-list_item-price', el)
-          || $('.cart_modal-list_item-box .heading-style-h4', el);
-        if (priceEl) priceEl.textContent = fmt(priceInfo?.final || pkg.basePrice);
-
-        // Remove button
-        const trashBtn = $('[data-cart="cart-item-remove"]', el)
-          || $('.cart_modal-list_item-remove', el)
-          || $('[class*="remove"]', el)
-          || $('[class*="trash"]', el)
-          || $('[class*="delete"]', el);
+        const trashBtn = $('[data-cart="cart-item-remove"]', el);
         if (trashBtn) {
-          trashBtn.style.cursor = 'pointer';
           trashBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -327,19 +307,12 @@
           });
         }
 
-        debug('Rendered item:', item.sku, {
-          title: titleEl?.textContent,
-          price: priceEl?.textContent,
-          img: !!img,
-          trash: !!trashBtn,
-          elHTML: el.innerHTML.substring(0, 500),
-        });
-
+        debug('Rendered item:', item.sku, pkg.name);
         listContainer.appendChild(el);
       });
     }
 
-    const totalEl = $('.cart_modal-price_wrap .heading-style-h4', m);
+    const totalEl = $('[data-cart="total-price"]', m) || $('.cart_modal-price_wrap .heading-style-h4', m);
     if (totalEl) {
       totalEl.textContent = fmt(calc.total);
     }

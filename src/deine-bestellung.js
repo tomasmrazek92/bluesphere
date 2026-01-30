@@ -221,17 +221,11 @@
   function updateFortfahrenButton() {
     const btns = $$('[data-flow="btn-buy"], [data-cart="btn-buy"], [data-cart="checkout"]');
     const { practice } = getSelectedPractice();
-    const isAuth = window.Auth && window.Auth.isAuthenticated();
-    const enabled = isAuth && !!practice;
+    const enabled = !!practice;
 
     btns.forEach((btn) => {
-      if (enabled) {
-        btn.style.opacity = '';
-        btn.style.pointerEvents = '';
-      } else {
-        btn.style.opacity = '0.5';
-        btn.style.pointerEvents = 'auto'; // keep clickable for toast
-      }
+      btn.style.opacity = enabled ? '' : '0.5';
+      btn.style.pointerEvents = 'auto';
     });
   }
 
@@ -363,16 +357,17 @@
         e.stopPropagation();
         debug.log('Checkout clicked');
 
-        // Check auth (using global Auth module)
-        if (window.Auth && !window.Auth.isAuthenticated()) {
-          showNotification('Bitte melden Sie sich an', 'info');
-          window.Auth.openModal();
-          return;
-        }
-
+        // Check practice first
         const { practiceSelect, practice } = getSelectedPractice();
         if (!practice) {
           showNotification('Bitte wähle Praxis', 'error');
+          return;
+        }
+
+        // Then check auth
+        if (window.Auth && !window.Auth.isAuthenticated()) {
+          showNotification('Bitte melden Sie sich an', 'info');
+          window.Auth.openModal();
           return;
         }
 
