@@ -106,20 +106,23 @@
       const original = $('[data-template="original"]', cartContainer);
 
       // Remove previous empty state
-      const prevEmpty = cartContainer.parentElement?.querySelector('.cart-empty-state');
+      const orderCard = cartContainer?.closest('.order_card');
+      const prevEmpty = orderCard?.querySelector('.cart-empty-state');
       if (prevEmpty) prevEmpty.remove();
 
       if (items.length === 0) {
         if (original) original.style.display = 'none';
         // Show empty state
-        const emptyEl = document.createElement('div');
-        emptyEl.className = 'cart-empty-state';
-        emptyEl.style.cssText = 'text-align:center;padding:3rem 2rem;';
-        emptyEl.innerHTML =
-          '<p style="font-size:1.4rem;margin-bottom:1.5rem;color:#4B4B4E;">Füge ein Biomarker Paket zum Warenkorb hinzu</p>' +
-          '<a href="/biomarker-packages" class="button w-inline-block" style="display:inline-flex;text-decoration:none;">' +
-          '<span>ZU DEN PAKETEN</span></a>';
-        cartContainer.parentElement.appendChild(emptyEl);
+        if (orderCard) {
+          const emptyEl = document.createElement('div');
+          emptyEl.className = 'cart-empty-state';
+          emptyEl.style.cssText = 'text-align:center;padding:3rem 2rem;';
+          emptyEl.innerHTML =
+            '<p style="font-size:1.4rem;margin-bottom:1.5rem;color:#4B4B4E;">Füge ein Biomarker Paket zum Warenkorb hinzu</p>' +
+            '<a href="/biomarkers" class="button w-inline-block" style="display:inline-flex;text-decoration:none;">' +
+            '<span>ZU DEN PAKETEN</span></a>';
+          orderCard.appendChild(emptyEl);
+        }
       } else {
         items.forEach((item, i) => {
           const pkg = PACKAGES[item.sku];
@@ -181,9 +184,15 @@
     const totalUnitEl = $('[data-flow="total-price-unit"]');
     if (totalUnitEl) totalUnitEl.textContent = '€';
 
-    // Hide checkout controls when cart is empty
-    const buttonWrap = $('.cart_modal-list_item-button_wrap');
-    if (buttonWrap) buttonWrap.style.display = items.length === 0 ? 'none' : '';
+    // Hide all order card content when cart is empty, show only empty state
+    const orderCard = cartContainer?.closest('.order_card');
+    if (orderCard) {
+      Array.from(orderCard.children).forEach((child) => {
+        if (!child.classList.contains('cart-empty-state')) {
+          child.style.display = items.length === 0 ? 'none' : '';
+        }
+      });
+    }
 
     // Update cart count
     $$('[data-cart-count]').forEach((el) => (el.textContent = items.length));
@@ -518,7 +527,7 @@
         if (window.history.length > 1) {
           window.history.back();
         } else {
-          window.location.href = '/biomarker-packages';
+          window.location.href = '/biomarkers';
         }
       });
     }

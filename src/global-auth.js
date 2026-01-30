@@ -1041,6 +1041,31 @@
         el.textContent = user.email;
       });
     }
+
+    // Replace nav_user icon with initials circle when logged in, restore on logout
+    const navUser = $('.nav_user');
+    if (navUser) {
+      const iconWrap = navUser.querySelector('.icon-embed-xsmall');
+      if (isAuth && user) {
+        const parts = (user.name || '').trim().split(/\s+/);
+        const initials = ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase();
+        // Store original icon if not already saved
+        if (!navUser._originalIcon && iconWrap) {
+          navUser._originalIcon = iconWrap.innerHTML;
+        }
+        if (iconWrap) {
+          iconWrap.innerHTML =
+            '<div style="width:28px;height:28px;border-radius:50%;background:rgba(36,91,236,0.15);' +
+            'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;' +
+            'color:#000;font-family:inherit;line-height:1;">' + initials + '</div>';
+        }
+      } else {
+        // Restore original icon on logout
+        if (navUser._originalIcon && iconWrap) {
+          iconWrap.innerHTML = navUser._originalIcon;
+        }
+      }
+    }
   }
 
   // ========================================
@@ -1182,26 +1207,29 @@
     const dropdown = document.createElement('div');
     dropdown.id = 'nav-user-dropdown';
     dropdown.style.cssText =
-      'position:absolute;top:100%;right:0;margin-top:8px;background:#1a1a2e;color:#fff;' +
+      'position:absolute;top:100%;right:0;margin-top:8px;background:#fff;color:#000;' +
       'border-radius:10px;padding:16px 20px;min-width:220px;z-index:9999;' +
-      'box-shadow:0 8px 24px rgba(0,0,0,0.3);font-family:inherit;';
+      'box-shadow:0 8px 24px rgba(0,0,0,0.12);font-family:inherit;';
 
     const name = document.createElement('div');
     name.textContent = user.name || '';
-    name.style.cssText = 'font-size:15px;font-weight:600;margin-bottom:4px;';
+    name.style.cssText = 'font-size:15px;font-weight:600;margin-bottom:4px;color:#000;';
 
     const email = document.createElement('div');
     email.textContent = user.email || '';
-    email.style.cssText = 'font-size:13px;opacity:0.7;margin-bottom:14px;';
+    email.style.cssText = 'font-size:13px;color:#4B4B4E;margin-bottom:14px;';
 
     const logoutBtn = document.createElement('button');
-    logoutBtn.textContent = 'Abmelden';
     logoutBtn.setAttribute('data-auth-logout', '');
     logoutBtn.style.cssText =
-      'display:block;width:100%;padding:8px 0;background:none;border:1px solid rgba(255,255,255,0.2);' +
-      'border-radius:6px;color:#fff;font-size:14px;cursor:pointer;transition:background 0.2s;';
-    logoutBtn.addEventListener('mouseenter', () => { logoutBtn.style.background = 'rgba(255,255,255,0.1)'; });
-    logoutBtn.addEventListener('mouseleave', () => { logoutBtn.style.background = 'none'; });
+      'display:flex;align-items:center;gap:8px;width:100%;padding:8px 0;background:none;border:none;' +
+      'color:#000;font-size:14px;cursor:pointer;transition:opacity 0.2s;font-family:inherit;';
+    logoutBtn.innerHTML =
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
+      'Logout';
+    logoutBtn.addEventListener('mouseenter', () => { logoutBtn.style.opacity = '0.6'; });
+    logoutBtn.addEventListener('mouseleave', () => { logoutBtn.style.opacity = '1'; });
 
     dropdown.appendChild(name);
     dropdown.appendChild(email);
