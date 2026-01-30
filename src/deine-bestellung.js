@@ -67,10 +67,15 @@
   let cartTemplate = null;
   let cartContainer = null;
 
+  let cartRetries = 0;
   function renderCart() {
     if (!window.CartModal) {
-      debug.log('Waiting for CartModal...');
-      setTimeout(renderCart, 100);
+      if (cartRetries++ < 50) {
+        debug.log('Waiting for CartModal...');
+        setTimeout(renderCart, 100);
+      } else {
+        debug.log('CartModal not available after 5s, giving up');
+      }
       return;
     }
 
@@ -243,7 +248,7 @@
     container.innerHTML = '';
     container.style.overflow = 'visible';
     const widget = document.createElement('div');
-    widget.className = 'calendly-inline-widget';
+    widget.className = 'calendly-widget-container';
     widget.style.cssText = 'min-width:100%;min-height:1100px;';
     container.appendChild(widget);
 
@@ -267,6 +272,8 @@
             email: email,
           },
         });
+        // Add class after init so widget.css styles the iframe
+        widget.classList.add('calendly-inline-widget');
         debug.log('Inline Calendly widget initialized');
       } catch (err) {
         debug.error('Calendly.initInlineWidget failed:', err);
