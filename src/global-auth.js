@@ -338,21 +338,47 @@
       const type = steps[i].getAttribute('data-register-type');
       if (type === 'personal-info') {
         showStep(i);
-        // Initialize datepicker if jQuery plugin is available
+        // Initialize datepicker and icon click after step is visible
         setTimeout(() => {
           const dpInput = steps[i].querySelector('input[data-toggle="datepicker"]');
-          if (dpInput && window.jQuery) {
-            try {
-              const $dp = window.jQuery(dpInput);
-              if ($dp.datepicker && !$dp.data('datepicker')) {
-                $dp.datepicker({ format: 'dd.mm.yyyy', autoHide: true });
-                debug.log('Datepicker initialized on personal-info step');
+          debug.log('Personal-info step: datepicker input:', dpInput ? 'found' : 'not found');
+
+          if (dpInput) {
+            // Init jQuery datepicker if available
+            if (window.jQuery) {
+              try {
+                const $dp = window.jQuery(dpInput);
+                if ($dp.datepicker && !$dp.data('datepicker')) {
+                  $dp.datepicker({ format: 'dd.mm.yyyy', autoHide: true });
+                  debug.log('Datepicker initialized');
+                } else {
+                  debug.log('Datepicker already initialized or not available');
+                }
+              } catch (e) {
+                debug.log('Datepicker init failed:', e.message);
               }
-            } catch (e) {
-              debug.log('Datepicker init failed:', e.message);
+            }
+
+            // Bind calendar icon click
+            const field = dpInput.closest('.form_field');
+            const icon = field?.querySelector('.form_field-icon');
+            debug.log('Calendar icon:', icon ? 'found' : 'not found');
+            if (icon && !icon._dpBound) {
+              icon._dpBound = true;
+              icon.style.cursor = 'pointer';
+              icon.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                debug.log('Calendar icon clicked');
+                dpInput.focus();
+                dpInput.click();
+                if (window.jQuery) {
+                  try { window.jQuery(dpInput).datepicker('show'); } catch (err) { /* */ }
+                }
+              });
             }
           }
-        }, 100);
+        }, 200);
         return;
       }
     }
@@ -490,31 +516,7 @@
       }
     });
 
-    // Make calendar icon click open the datepicker
-    const dpInputs = registerModal.querySelectorAll('input[data-toggle="datepicker"]');
-    debug.log('Datepicker inputs found:', dpInputs.length);
-    dpInputs.forEach((input) => {
-      const field = input.closest('.form_field');
-      const icon = field?.querySelector('.form_field-icon');
-      debug.log('Datepicker field:', field ? 'found' : 'not found', 'icon:', icon ? 'found' : 'not found');
-      if (icon) {
-        icon.style.cursor = 'pointer';
-        icon.addEventListener('click', () => {
-          debug.log('Calendar icon clicked, triggering datepicker');
-          input.focus();
-          input.click();
-          // Also try jQuery datepicker trigger
-          if (window.jQuery && window.jQuery(input).datepicker) {
-            try {
-              window.jQuery(input).datepicker('show');
-              debug.log('jQuery datepicker show triggered');
-            } catch (e) {
-              debug.log('jQuery datepicker show failed:', e.message);
-            }
-          }
-        });
-      }
-    });
+    // Datepicker icon click is now handled in showPersonalInfoStep()
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -771,7 +773,8 @@
         $('input[data-toggle="datepicker"]', personalInfoStep))?.value || '';
       if (!isValidDOB(dob)) return false;
       if (!getStep2Gender()) return false;
-      const requiredCheckboxes = $$('input[type="checkbox"][required]', personalInfoStep);
+      const requiredCheckboxes = $$('input[type="checkbox"][required]', personalInfoStep)
+        .filter((cb) => !cb.closest('.w-checkbox')?.querySelector('.text-color-gray-70'));
       if (requiredCheckboxes.some((cb) => !cb.checked)) return false;
       return true;
     }
@@ -784,6 +787,13 @@
     }
 
     if (personalInfoStep) {
+      // Remove required from optional checkboxes (marked with "(Optional)" in Webflow)
+      personalInfoStep.querySelectorAll('.w-checkbox').forEach((wrap) => {
+        if (wrap.querySelector('.text-color-gray-70')) {
+          const cb = wrap.querySelector('input[type="checkbox"]');
+          if (cb) cb.removeAttribute('required');
+        }
+      });
       personalInfoStep.addEventListener('input', updateStep2Button);
       personalInfoStep.addEventListener('change', updateStep2Button);
       // nice-select clicks
