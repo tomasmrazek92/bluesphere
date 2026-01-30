@@ -255,11 +255,22 @@
 
     $$('.cart_modal-list_item', listContainer).forEach((el) => el.remove());
 
+    // Hide/show buttons and price when empty
+    const btnWrap = $('.cart_modal-list_item-button_wrap', m);
+    const priceWrap = $('.cart_modal-price_wrap', m);
+    if (btnWrap) btnWrap.style.display = items.length === 0 ? 'none' : '';
+    if (priceWrap) priceWrap.style.display = items.length === 0 ? 'none' : '';
+
     if (items.length === 0) {
       const emptyEl = document.createElement('li');
       emptyEl.className = 'cart_modal-list_item';
       emptyEl.innerHTML =
-        '<div class="cart_modal-list_item-inner" style="justify-content: center; padding: 2rem;"><div class="text-color-gray-70"><div class="text-size-small">Warenkorb ist leer</div></div></div>';
+        '<div class="cart_modal-list_item-inner" style="justify-content:center;padding:2rem;text-align:center;">' +
+        '<div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem;">' +
+        '<p style="font-size:1.4rem;color:#4B4B4E;">Füge ein Biomarker Paket zum Warenkorb hinzu</p>' +
+        '<a href="/biomarker-packages" class="button w-inline-block" style="display:inline-flex;text-decoration:none;">' +
+        '<span>ZU DEN PAKETEN</span></a>' +
+        '</div></div>';
       listContainer.appendChild(emptyEl);
     } else {
       items.forEach((item) => {
