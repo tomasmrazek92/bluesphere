@@ -1042,27 +1042,24 @@
       });
     }
 
-    // Replace nav_user icon with initials circle when logged in, restore on logout
+    // Replace nav_user content with initials circle when logged in, restore on logout
     const navUser = $('.nav_user');
     if (navUser) {
-      const iconWrap = navUser.querySelector('.icon-embed-xsmall');
       if (isAuth && user) {
         const parts = (user.name || '').trim().split(/\s+/);
         const initials = ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase();
-        // Store original icon if not already saved
-        if (!navUser._originalIcon && iconWrap) {
-          navUser._originalIcon = iconWrap.innerHTML;
+        // Store original content if not already saved
+        if (!navUser._originalHTML) {
+          navUser._originalHTML = navUser.innerHTML;
         }
-        if (iconWrap) {
-          iconWrap.innerHTML =
-            '<div style="width:28px;height:28px;border-radius:50%;background:rgba(36,91,236,0.15);' +
-            'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;' +
-            'color:#000;font-family:inherit;line-height:1;">' + initials + '</div>';
-        }
+        navUser.innerHTML =
+          '<div style="width:28px;height:28px;border-radius:50%;background:rgba(36,91,236,0.15);' +
+          'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;' +
+          'color:#000;font-family:inherit;line-height:1;">' + initials + '</div>';
       } else {
-        // Restore original icon on logout
-        if (navUser._originalIcon && iconWrap) {
-          iconWrap.innerHTML = navUser._originalIcon;
+        // Restore original content on logout
+        if (navUser._originalHTML) {
+          navUser.innerHTML = navUser._originalHTML;
         }
       }
     }
