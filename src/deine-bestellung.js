@@ -385,10 +385,10 @@
           return;
         }
 
-        // Then check auth
+        // Then check auth — open register (not login) on deine-bestellung
         if (window.Auth && !window.Auth.isAuthenticated()) {
-          showNotification('Bitte melden Sie sich an', 'info');
-          window.Auth.openModal();
+          showNotification('Bitte registriere dich oder melde dich an', 'info');
+          window.Auth.openRegister();
           return;
         }
 

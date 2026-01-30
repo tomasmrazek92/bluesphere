@@ -358,16 +358,12 @@
     showStep(0);
   }
 
-  function openModal() {
-    debug.log('Opening register modal');
+  function openModal(step) {
+    debug.log('Opening register modal, step:', step || 'initial');
 
     if (typeof window.openModal === 'function') {
       window.openModal('register');
-      setTimeout(() => {
-        showInitialStep();
-      }, 100);
     } else {
-      // Manual open
       const modalTarget = $('[data-modal-target="register"]');
       const modalName = $('[data-modal-name="register"]');
       const modalGroup = $('[data-modal-group-status]');
@@ -375,11 +371,13 @@
       if (modalTarget) modalTarget.setAttribute('data-modal-status', 'active');
       if (modalName) modalName.setAttribute('data-modal-status', 'active');
       if (modalGroup) modalGroup.setAttribute('data-modal-group-status', 'active');
-
-      setTimeout(() => {
-        showInitialStep();
-      }, 100);
     }
+
+    setTimeout(() => {
+      if (step === 'register') showRegisterStep();
+      else if (step === 'login') showLoginStep();
+      else showInitialStep();
+    }, 100);
   }
 
   function closeModal() {
@@ -464,6 +462,18 @@
     }
 
     debug.log('Found form in register modal');
+
+    // Inject missing labels for password fields (floating label pattern)
+    registerModal.querySelectorAll('input[type="password"]').forEach((input) => {
+      const field = input.closest('.form_field');
+      if (field && !field.querySelector('.form_label')) {
+        const label = document.createElement('label');
+        label.className = 'form_label';
+        label.setAttribute('for', input.id || '');
+        label.textContent = input.placeholder || '';
+        field.appendChild(label);
+      }
+    });
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -1271,6 +1281,8 @@
       resendCode,
       logout,
       openModal,
+      openRegister: () => openModal('register'),
+      openLogin: () => openModal('login'),
       closeModal,
       openCalendly: openCalendlyModal,
       closeCalendly: closeCalendlyModal,

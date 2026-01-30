@@ -229,6 +229,12 @@
       }, 200);
     }, 100);
 
+    // Re-enable scroll (index.js disableScroll may have been triggered by data-modal-target click)
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+
     debug('Cart modal closed');
   }
 
