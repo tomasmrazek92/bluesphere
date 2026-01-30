@@ -1,0 +1,101 @@
+/**
+ * Form Validation Styles
+ * ZIP validation states, error messages, and form field styling
+ */
+
+/* ZIP Field Container */
+.zip-field-wrapper {
+  position: relative;
+}
+
+.zip-field-container {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Webflow specific node fix */
+#w-node-b869a8c8-d82e-ffc9-9caf-8ae949d246bc-49d2469f {
+  align-self: start !important;
+}
+
+/* Form Modal overflow fix */
+.form_modal-form {
+  overflow: visible !important;
+}
+
+.form_field {
+  position: relative !important;
+}
+
+/* ZIP Validation States */
+input.zip-validating {
+  border-color: #fbbf24 !important;
+  outline-color: #fbbf24 !important;
+}
+
+input.zip-valid {
+  border-color: #10b981 !important;
+  outline-color: #10b981 !important;
+}
+
+input.zip-invalid {
+  border-color: #ef4444 !important;
+  outline-color: #ef4444 !important;
+}
+
+/* Validation Message Animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Screen Reader Only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Validation Message Styling */
+.form_validation {
+  display: none;
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  animation: slideDown 0.2s ease;
+}
+
+.form_validation.show {
+  display: block;
+}
+
+/* Error States - only affect input borders, not labels */
+.form_field.error .form_input {
+  border-color: #ef4444;
+}
+
+/* Form Error Message Box */
+.form-error-message {
+  color: #ef4444;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  z-index: 1000;
+  position: relative;
+}

@@ -499,6 +499,28 @@
     $$('[data-cart-count]').forEach((el) => {
       el.textContent = items.length;
     });
+
+    // Update nav cart badge
+    $$('.nav_cart').forEach((nav) => {
+      nav.style.position = 'relative';
+      let badge = nav.querySelector('.nav_cart-badge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'nav_cart-badge';
+        badge.style.cssText =
+          'position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;' +
+          'background:#245bec;color:#fff;border-radius:50%;font-size:10px;' +
+          'font-weight:600;display:flex;align-items:center;justify-content:center;' +
+          'line-height:1;padding:0 3px;pointer-events:none;';
+        nav.appendChild(badge);
+      }
+      if (items.length > 0) {
+        badge.textContent = items.length;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    });
   }
 
   // Setup add-to-cart buttons on /package-* pages

@@ -1,0 +1,179 @@
+/**
+ * Nice Select Dropdown Styles
+ * Custom styling for the nice-select dropdown component
+ */
+
+:root {
+  --list-bg-color: white;
+  --list-text-color: var(--black);
+  --list-text-color-hover: inherit;
+  --current-field-text-color: inherit;
+  --select-field-arrow-color: #4E555D;
+  --list-item-bg-color: #E9EFFD;
+
+  /* Spacing */
+  --list-padding-top-bottom: 0.8rem;
+  --list-max-height: 20vh;
+  --list-item-padding-left: 1.6rem;
+  --list-item-padding-right: 1.6rem;
+  --list-item-min-height: 4em;
+  --list-item-line-height: 4em;
+}
+
+/* Hide native select when nice-select is active */
+select.select {
+  display: block !important;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Nice Select Container */
+.nice-select {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+  clear: both;
+  position: relative;
+  text-align: left !important;
+  transition: all 0.2s ease-in-out;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  font-size: 1.6rem;
+}
+
+/* Dropdown Arrow */
+.nice-select:after {
+  border-bottom: 2px solid var(--select-field-arrow-color);
+  border-right: 2px solid var(--select-field-arrow-color);
+  content: '';
+  display: block;
+  height: 0.4em;
+  margin-top: -0.25em;
+  pointer-events: none;
+  position: absolute;
+  right: 1em;
+  top: 50%;
+  transform-origin: 66% 66%;
+  transform: rotate(45deg);
+  transition: all 0.15s ease-in-out;
+  width: 0.4em;
+}
+
+/* Open State */
+.nice-select.open {
+  border-bottom-left-radius: 0rem;
+  border-bottom-right-radius: 0rem;
+  border: 1px solid var(--blue-50-245bec);
+  border-bottom-color: transparent;
+  background-color: var(--list-bg-color);
+}
+
+.nice-select.open:after {
+  transform: rotate(-135deg);
+}
+
+.nice-select.open .list {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1) translateY(0);
+}
+
+/* Dropdown List */
+.nice-select .list {
+  background-color: var(--list-bg-color);
+  color: var(--list-text-color);
+  border-top-left-radius: 0rem;
+  border-top-right-radius: 0rem;
+  border-bottom-left-radius: 0.8rem;
+  border-bottom-right-radius: 0.8rem;
+  border: 1px solid var(--blue-50-245bec);
+  border-top: none;
+  box-sizing: border-box;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0px;
+  pointer-events: none;
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  max-height: var(--list-max-height);
+  transform-origin: 50% 0;
+  transform: scale(0.75) translateY(-21px);
+  transition: all 0.2s cubic-bezier(0.5, 0, 0, 1.25), opacity 0.15s ease-out;
+  z-index: 9;
+}
+
+.nice-select .list:hover .option:not(:hover) {
+  background-color: transparent !important;
+}
+
+/* Dropdown Options */
+.nice-select .option {
+  padding: 1.2rem 0;
+  cursor: pointer;
+  line-height: 1.4;
+  list-style: none;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  font-family: TT Norms Pro Mono, Impact, sans-serif;
+  letter-spacing: 0.05em;
+  background-image: none;
+  outline: none;
+  padding-left: var(--list-item-padding-left);
+  padding-right: var(--list-item-padding-right);
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.nice-select .option:first-child {
+  display: none;
+}
+
+.nice-select .option:last-child {
+  margin-bottom: 0;
+}
+
+/* Current Selection */
+span.current {
+  color: inherit;
+}
+
+/* Option Hover & Selected States */
+.nice-select .option:hover,
+.nice-select .option.focus,
+.nice-select .option.selected.focus {
+  background-color: var(--list-item-bg-color);
+}
+
+.nice-select .option:hover {
+  color: var(--list-text-color-hover);
+}
+
+/* Search Filter Input */
+.nice-select .filter-wrap input {
+  color: var(--black);
+  background-color: #f4f4f4;
+  border: 1px solid #e2e2e2;
+  border-left: none;
+  border-right: none;
+  border-radius: .8rem;
+  height: 4rem;
+  margin-bottom: 0;
+  padding: 1.2rem 1.4rem;
+  font-size: 1.3rem;
+  font-weight: 500;
+  width: 100%;
+  border-radius: 0;
+  text-transform: uppercase;
+  font-family: TT Norms Pro Mono, Impact, sans-serif;
+  letter-spacing: 0.05em;
+  box-shadow: none !important;
+  outline: none !important;
+}

@@ -106,10 +106,30 @@
     password: '',
   };
 
+  // Map Webflow gender values to API-expected values
+  const GENDER_MAP = {
+    male: 'MALE',
+    female: 'FEMALE',
+    diverse: 'NON_BINARY',
+    'non-binary': 'NON_BINARY',
+    other: 'OTHER',
+    'no-share': 'NO_SHARE',
+    unknown: 'UNKNOWN',
+    // Already uppercase values pass through
+    MALE: 'MALE',
+    FEMALE: 'FEMALE',
+    NON_BINARY: 'NON_BINARY',
+    OTHER: 'OTHER',
+    NO_SHARE: 'NO_SHARE',
+    UNKNOWN: 'UNKNOWN',
+  };
+
   async function register(formData) {
     const { firstName, lastName, email, password, dateOfBirth, gender } = formData;
 
     debug.log('Registering user:', email);
+
+    const mappedGender = GENDER_MAP[gender] || GENDER_MAP[gender.toLowerCase()] || 'UNKNOWN';
 
     const payload = {
       firstName: firstName.trim(),
@@ -117,7 +137,7 @@
       email: email.toLowerCase().trim(),
       password: password,
       dateOfBirth: dateOfBirth,
-      gender: gender,
+      gender: mappedGender,
       role: 'PATIENT',
     };
 
@@ -312,6 +332,17 @@
     }
   }
 
+  function showPersonalInfoStep() {
+    const steps = getFormSteps();
+    for (let i = 0; i < steps.length; i++) {
+      const type = steps[i].getAttribute('data-register-type');
+      if (type === 'personal-info') {
+        showStep(i);
+        return;
+      }
+    }
+  }
+
   function showCodeStep() {
     const steps = getFormSteps();
     for (let i = 0; i < steps.length; i++) {
@@ -468,16 +499,58 @@
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         debug.log('Back button clicked');
-        showInitialStep();
+        // If on personal-info step, go back to register step
+        const parentStep = btn.closest('[data-register="form-step"]');
+        if (parentStep && parentStep.getAttribute('data-register-type') === 'personal-info') {
+          showRegisterStep();
+        } else {
+          showInitialStep();
+        }
       });
     });
 
-    // ===== REGISTRATION FLOW =====
+    // ===== REGISTRATION FLOW: Step 1 - Name/Email/Password =====
     const nextBtn = $('[data-register="btn-next"]', registerModal);
+
+    function getStep1Fields() {
+      return {
+        firstName: ($('#first_name', registerModal) || $('input[name="first_name"]', registerModal))?.value || '',
+        lastName: ($('#last_name', registerModal) || $('input[name="last_name"]', registerModal))?.value || '',
+        email: ($('#email-sign-in', registerModal) || $('input[name="email-sign-in"]', registerModal))?.value || '',
+        password: ($('#password-signin', registerModal) || $('input[name="password-signin"]', registerModal))?.value || '',
+        passwordConfirm: ($('#password-signin-again', registerModal) || $('input[name="password-signin-again"]', registerModal))?.value || '',
+      };
+    }
+
+    function isStep1Valid() {
+      const f = getStep1Fields();
+      if (!f.firstName || !f.lastName) return false;
+      if (!f.email || !f.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return false;
+      if (!f.password || f.password.length < 8 ||
+          !/[A-Z]/.test(f.password) || !/[a-z]/.test(f.password) ||
+          !/[0-9]/.test(f.password) || !/[^A-Za-z0-9]/.test(f.password)) return false;
+      if (f.password !== f.passwordConfirm) return false;
+      return true;
+    }
+
+    function updateStep1Button() {
+      if (!nextBtn) return;
+      const valid = isStep1Valid();
+      nextBtn.style.opacity = valid ? '' : '0.5';
+      nextBtn.style.pointerEvents = valid ? 'auto' : 'none';
+    }
+
+    // Listen for input changes on step 1 fields
+    const registerStep = registerModal.querySelector('[data-register-type="register"]');
+    if (registerStep) {
+      registerStep.addEventListener('input', updateStep1Button);
+      updateStep1Button();
+    }
+
     if (nextBtn) {
-      nextBtn.addEventListener('click', async (e) => {
+      nextBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        debug.log('Next button clicked (register)');
+        debug.log('Next button clicked (register step 1)');
         clearFormErrors();
 
         const firstName =
@@ -525,11 +598,74 @@
           return;
         }
 
+        // Store step 1 data and go to personal-info step
+        pendingRegistration = { firstName, lastName, email, password };
+        showPersonalInfoStep();
+      });
+    }
+
+    // ===== REGISTRATION FLOW: Step 2 - Personal Info (DOB, Gender, Checkboxes) =====
+    const sendBtn = $('[data-register="btn-send"]', registerModal);
+    const personalInfoStep = registerModal.querySelector('[data-register-type="personal-info"]');
+
+    function getStep2Gender() {
+      if (!personalInfoStep) return '';
+      const genderSelect = $('select', personalInfoStep);
+      let gender = genderSelect?.value || '';
+      if (!gender && genderSelect) {
+        const niceSelect = genderSelect.nextElementSibling;
+        if (niceSelect && niceSelect.classList.contains('nice-select')) {
+          const selected = niceSelect.querySelector('.option.selected');
+          if (selected && selected.getAttribute('data-value')) {
+            gender = selected.getAttribute('data-value');
+          }
+        }
+      }
+      return gender;
+    }
+
+    function isStep2Valid() {
+      if (!personalInfoStep) return false;
+      const dob = ($('#dateOfBirth', personalInfoStep) ||
+        $('input[name="dateOfBirth"]', personalInfoStep) ||
+        $('input[data-toggle="datepicker"]', personalInfoStep))?.value || '';
+      if (!dob) return false;
+      if (!getStep2Gender()) return false;
+      const requiredCheckboxes = $$('input[type="checkbox"][required]', personalInfoStep);
+      if (requiredCheckboxes.some((cb) => !cb.checked)) return false;
+      return true;
+    }
+
+    function updateStep2Button() {
+      if (!sendBtn) return;
+      const valid = isStep2Valid();
+      sendBtn.style.opacity = valid ? '' : '0.5';
+      sendBtn.style.pointerEvents = valid ? 'auto' : 'none';
+    }
+
+    if (personalInfoStep) {
+      personalInfoStep.addEventListener('input', updateStep2Button);
+      personalInfoStep.addEventListener('change', updateStep2Button);
+      // nice-select clicks
+      personalInfoStep.addEventListener('click', (e) => {
+        if (e.target.closest('.nice-select .option')) {
+          setTimeout(updateStep2Button, 50);
+        }
+      });
+      updateStep2Button();
+    }
+
+    if (sendBtn) {
+      sendBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        debug.log('Send button clicked (register step 2)');
+        clearFormErrors();
+
         const dateOfBirthRaw =
-          $('#date-of-birth', registerModal)?.value ||
-          $('input[name="date-of-birth"]', registerModal)?.value ||
+          $('#dateOfBirth', registerModal)?.value ||
           $('input[name="dateOfBirth"]', registerModal)?.value ||
-          $('input[type="date"]', registerModal)?.value ||
+          $('input[name="date-of-birth"]', registerModal)?.value ||
+          $('input[data-toggle="datepicker"]', registerModal)?.value ||
           '';
 
         if (!dateOfBirthRaw) {
@@ -537,23 +673,34 @@
           return;
         }
 
-        // Ensure ISO 8601 format (YYYY-MM-DD)
-        const dateOfBirth = new Date(dateOfBirthRaw).toISOString().split('T')[0];
+        // Parse DD.MM.YYYY or other formats to ISO
+        let dateOfBirth;
+        const ddmmyyyy = dateOfBirthRaw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+        if (ddmmyyyy) {
+          dateOfBirth = `${ddmmyyyy[3]}-${ddmmyyyy[2].padStart(2, '0')}-${ddmmyyyy[1].padStart(2, '0')}`;
+        } else {
+          dateOfBirth = new Date(dateOfBirthRaw).toISOString().split('T')[0];
+        }
 
-        const gender =
-          $('#gender-register', registerModal)?.value ||
-          $('select[name="gender-register"]', registerModal)?.value ||
-          $('select[name="gender"]', registerModal)?.value ||
-          '';
-
+        const gender = getStep2Gender();
         if (!gender) {
           showFormError(form, 'Bitte Geschlecht auswählen');
           return;
         }
 
-        pendingRegistration = { firstName, lastName, email, password, dateOfBirth, gender };
+        // Check required checkbox (first one = privacy/AGB)
+        const checkboxes = $$('input[type="checkbox"][required]', personalInfoStep || registerModal);
+        const uncheckedRequired = checkboxes.filter((cb) => !cb.checked);
+        if (uncheckedRequired.length > 0) {
+          showFormError(form, 'Bitte stimme den Datenschutz- und Geschäftsbedingungen zu');
+          return;
+        }
 
-        setButtonLoading(nextBtn, true);
+        pendingRegistration.dateOfBirth = dateOfBirth;
+        pendingRegistration.gender = gender;
+
+        debug.log('Full registration data:', pendingRegistration);
+        setButtonLoading(sendBtn, true);
 
         try {
           await register(pendingRegistration);
@@ -563,13 +710,33 @@
           debug.error('Registration error:', error);
           showFormError(form, error.message);
         } finally {
-          setButtonLoading(nextBtn, false);
+          setButtonLoading(sendBtn, false);
         }
       });
     }
 
     // ===== LOGIN FLOW =====
     const signinBtn = $('[data-register="btn-signin"]', registerModal);
+
+    function isLoginValid() {
+      const email = ($('#email-login', registerModal) || $('input[name="email-login"]', registerModal))?.value || '';
+      const password = ($('#password-login', registerModal) || $('input[name="password-login"]', registerModal))?.value || '';
+      return !!(email && password);
+    }
+
+    function updateLoginButton() {
+      if (!signinBtn) return;
+      signinBtn.style.opacity = isLoginValid() ? '' : '0.5';
+      signinBtn.style.pointerEvents = isLoginValid() ? 'auto' : 'none';
+    }
+
+    const loginStep = registerModal.querySelector('[data-register-type="sign-in"]') ||
+      registerModal.querySelector('[data-registe-type="sign-in"]');
+    if (loginStep) {
+      loginStep.addEventListener('input', updateLoginButton);
+      updateLoginButton();
+    }
+
     if (signinBtn) {
       signinBtn.addEventListener('click', async (e) => {
         e.preventDefault();

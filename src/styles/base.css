@@ -1,0 +1,29 @@
+/**
+ * Base Styles
+ * Initial element states for animations and layout
+ */
+
+/* Split text - hidden until animation runs */
+[data-split] {
+  visibility: hidden;
+}
+
+/* Form validation messages - hidden by default */
+.form_validation {
+  display: none;
+}
+
+/* Hero elements - hidden until animation */
+[data-hero] {
+  opacity: 0;
+}
+
+[data-hero="heading"] {
+  opacity: 1;
+  visibility: hidden;
+}
+
+/* Prevent layout shift on form fields */
+.form_field + .form_field {
+  transition: none !important;
+}
