@@ -6,7 +6,7 @@
 (function () {
   const CONFIG = {
     API_BASE: 'https://bluesphere.dev.longtermhealth.de',
-    DEBUG: true,
+    DEBUG: false,
   };
 
   const AUTH_CONFIG = {
@@ -1041,7 +1041,27 @@
           updateAuthUI();
         } catch (error) {
           debug.error('Verification error:', error);
-          showFormError(form, error.message);
+          const msg = error.message === 'Code not found'
+            ? 'Der eingegebene Code ist ungültig. Bitte überprüfe den Code und versuche es erneut.'
+            : error.message;
+          // Show error on the visible step, not the form root
+          const visibleStep = registerModal.querySelector('[data-register-step]:not([style*="display: none"])') ||
+            registerModal.querySelector('[data-register-step]:not([style*="display:none"])');
+          if (visibleStep) {
+            let errEl = visibleStep.querySelector('.auth-error-message');
+            if (!errEl) {
+              errEl = document.createElement('div');
+              errEl.className = 'auth-error-message';
+              errEl.style.cssText =
+                'color: #dc3545; padding: 10px; margin: 10px 0; background: #f8d7da; border-radius: 4px; font-size: 14px;';
+              visibleStep.appendChild(errEl);
+            }
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+            setTimeout(() => { errEl.style.display = 'none'; }, 5000);
+          } else {
+            showFormError(form, msg);
+          }
         } finally {
           setButtonLoading(codeConfirmBtn, false);
         }
@@ -1064,12 +1084,167 @@
       });
     }
 
+    // ========================================
+    // FORGOT PASSWORD FLOW
+    // ========================================
     const forgetLink = $('[data-register="password-forget"]', registerModal);
     if (forgetLink) {
+      let forgotContainer = null;
+
+      function createForgotUI() {
+        if (forgotContainer) return forgotContainer;
+        forgotContainer = document.createElement('div');
+        forgotContainer.className = 'forgot-password-container';
+        forgotContainer.style.cssText = 'padding: 0;';
+        forgotContainer.innerHTML = `
+          <div data-forgot-step="email" style="display:block;">
+            <div class="form_field-wrap" style="margin-bottom:16px;">
+              <div class="form_field">
+                <input type="email" class="form_input w-input" placeholder=" " data-forgot="email" required>
+                <label class="form_label">E-Mail-Adresse</label>
+              </div>
+            </div>
+            <a href="#" class="btn_primary w-button" data-forgot="send-code" style="width:100%;text-align:center;display:block;">Code senden</a>
+            <div style="text-align:center;margin-top:12px;">
+              <a href="#" data-forgot="back-to-login" style="font-size:13px;color:#245BEC;text-decoration:none;">Zurück zum Login</a>
+            </div>
+          </div>
+          <div data-forgot-step="reset" style="display:none;">
+            <div class="form_field-wrap" style="margin-bottom:16px;">
+              <div class="form_field">
+                <input type="text" class="form_input w-input" placeholder=" " data-forgot="code" maxlength="6" inputmode="numeric" required>
+                <label class="form_label">6-stelliger Code</label>
+              </div>
+            </div>
+            <div class="form_field-wrap" style="margin-bottom:16px;">
+              <div class="form_field">
+                <input type="password" class="form_input w-input" placeholder=" " data-forgot="new-password" required>
+                <label class="form_label">Neues Passwort</label>
+              </div>
+            </div>
+            <a href="#" class="btn_primary w-button" data-forgot="confirm-reset" style="width:100%;text-align:center;display:block;">Passwort zurücksetzen</a>
+            <div style="text-align:center;margin-top:12px;">
+              <a href="#" data-forgot="back-to-email" style="font-size:13px;color:#245BEC;text-decoration:none;">Zurück</a>
+            </div>
+          </div>
+        `;
+        return forgotContainer;
+      }
+
+      function showForgotStep(stepName) {
+        const steps = getFormSteps();
+        steps.forEach((s) => (s.style.display = 'none'));
+        if (!forgotContainer.parentNode) {
+          registerModal.querySelector('form')?.appendChild(forgotContainer) ||
+            registerModal.appendChild(forgotContainer);
+        }
+        forgotContainer.style.display = 'block';
+        forgotContainer.querySelectorAll('[data-forgot-step]').forEach((s) => {
+          s.style.display = s.getAttribute('data-forgot-step') === stepName ? 'block' : 'none';
+        });
+      }
+
+      function hideForgot() {
+        if (forgotContainer) forgotContainer.style.display = 'none';
+      }
+
       forgetLink.addEventListener('click', (e) => {
         e.preventDefault();
         debug.log('Password forget clicked');
-        showNotification('Passwort-Reset wird noch implementiert', 'info');
+        createForgotUI();
+        showForgotStep('email');
+      });
+
+      registerModal.addEventListener('click', async (e) => {
+        const target = e.target;
+
+        // Back to login
+        if (target.matches('[data-forgot="back-to-login"]')) {
+          e.preventDefault();
+          hideForgot();
+          showLoginStep();
+          return;
+        }
+
+        // Back to email step
+        if (target.matches('[data-forgot="back-to-email"]')) {
+          e.preventDefault();
+          showForgotStep('email');
+          return;
+        }
+
+        // Send code
+        if (target.matches('[data-forgot="send-code"]')) {
+          e.preventDefault();
+          const emailInput = forgotContainer.querySelector('[data-forgot="email"]');
+          const email = emailInput?.value?.trim();
+          if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+            showFormError(registerModal.querySelector('form') || registerModal,
+              'Bitte eine gültige E-Mail-Adresse eingeben');
+            return;
+          }
+          setButtonLoading(target, true);
+          try {
+            const resp = await apiCall('/user/forgot-password', {
+              method: 'POST',
+              body: JSON.stringify({ email }),
+            });
+            if (!resp.ok) {
+              const data = await resp.json().catch(() => ({}));
+              throw new Error(data.message || 'Fehler beim Senden des Codes');
+            }
+            showNotification('Code wurde an deine E-Mail gesendet', 'success');
+            forgotContainer._email = email;
+            showForgotStep('reset');
+          } catch (err) {
+            debug.error('Forgot password error:', err);
+            showFormError(registerModal.querySelector('form') || registerModal, err.message);
+          } finally {
+            setButtonLoading(target, false);
+          }
+          return;
+        }
+
+        // Confirm reset
+        if (target.matches('[data-forgot="confirm-reset"]')) {
+          e.preventDefault();
+          const code = forgotContainer.querySelector('[data-forgot="code"]')?.value?.trim();
+          const newPassword = forgotContainer.querySelector('[data-forgot="new-password"]')?.value;
+
+          if (!code || code.length !== 6) {
+            showFormError(registerModal.querySelector('form') || registerModal,
+              'Bitte den vollständigen 6-stelligen Code eingeben');
+            return;
+          }
+          if (!newPassword || newPassword.length < 8 ||
+              !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) ||
+              !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+            showFormError(registerModal.querySelector('form') || registerModal,
+              'Mindestens 8 Zeichen, Groß-/Kleinbuchstabe, Zahl und Sonderzeichen');
+            return;
+          }
+
+          setButtonLoading(target, true);
+          try {
+            const resp = await apiCall('/user/forgot-password-verification', {
+              method: 'POST',
+              body: JSON.stringify({ code, newPassword }),
+            });
+            if (!resp.ok) {
+              const data = await resp.json().catch(() => ({}));
+              throw new Error(data.message || 'Fehler beim Zurücksetzen des Passworts');
+            }
+            showNotification('Passwort erfolgreich zurückgesetzt!', 'success');
+            hideForgot();
+            showLoginStep();
+          } catch (err) {
+            debug.error('Password reset error:', err);
+            showFormError(registerModal.querySelector('form') || registerModal, err.message);
+          } finally {
+            setButtonLoading(target, false);
+          }
+          return;
+        }
       });
     }
 
@@ -1078,7 +1253,7 @@
       googleBtn.addEventListener('click', (e) => {
         e.preventDefault();
         debug.log('Google signin clicked');
-        showNotification('Google-Anmeldung wird noch implementiert', 'info');
+        window.location.href = CONFIG.API_BASE + '/auth/google';
       });
     }
 
@@ -1087,7 +1262,7 @@
       appleBtn.addEventListener('click', (e) => {
         e.preventDefault();
         debug.log('Apple signin clicked');
-        showNotification('Apple-Anmeldung wird noch implementiert', 'info');
+        window.location.href = CONFIG.API_BASE + '/auth/apple';
       });
     }
 
@@ -1136,7 +1311,7 @@
     if (navUser) {
       if (isAuth && user) {
         const parts = (user.name || '').trim().split(/\s+/);
-        const initials = ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase();
+        const initials = ((parts[0]?.[0] || '') + (parts[parts.length - 1]?.[0] || '')).toUpperCase();
         // Store original content if not already saved
         if (!navUser._originalHTML) {
           navUser._originalHTML = navUser.innerHTML;
@@ -1377,9 +1552,57 @@
   // ========================================
   // INITIALIZATION
   // ========================================
+  // Handle OAuth callback tokens from URL
+  function handleOAuthCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token') || params.get('accessToken');
+    const refreshToken = params.get('refreshToken');
+
+    if (!token) return false;
+
+    debug.log('OAuth callback detected, storing tokens');
+    SecureStorage.set(AUTH_CONFIG.TOKEN_KEY, token);
+    if (refreshToken) {
+      SecureStorage.set(AUTH_CONFIG.REFRESH_KEY, refreshToken, 60 * 24 * 7);
+    }
+
+    // Try to get user info from params or fetch from API
+    const name = params.get('name') || params.get('firstName') || '';
+    const email = params.get('email') || '';
+    if (name || email) {
+      SecureStorage.set(AUTH_CONFIG.USER_KEY, { name, email });
+    }
+
+    // Clean URL
+    const url = new URL(window.location);
+    ['token', 'accessToken', 'refreshToken', 'name', 'firstName', 'lastName', 'email'].forEach(
+      (k) => url.searchParams.delete(k)
+    );
+    window.history.replaceState({}, '', url.pathname + url.search);
+
+    // If we have a token but no user data, fetch profile
+    if (!name && !email) {
+      apiCall('/user/profile').then(async (resp) => {
+        if (resp.ok) {
+          const data = await resp.json();
+          const user = data.result || data;
+          SecureStorage.set(AUTH_CONFIG.USER_KEY, {
+            name: user.firstName ? `${user.firstName} ${user.lastName}` : user.name || '',
+            email: user.email || '',
+            id: user.id,
+          });
+          updateAuthUI();
+        }
+      }).catch(() => {});
+    }
+
+    return true;
+  }
+
   function init() {
     debug.log('Initializing global auth module');
 
+    handleOAuthCallback();
     setupAuthHandlers();
     setupLogoutHandlers();
     setupNavUserHandler();
