@@ -544,7 +544,7 @@
     debug('Package page detected:', slug, '-> SKU:', sku);
 
     // Find "In den Warenkorb" buttons - look for buttons with cart-related text or data attributes
-    const addToCartButtons = $$('[data-cart="add-to-cart"], [data-add-to-cart], [data-hero="item"]');
+    const addToCartButtons = $$('[data-cart="add-to-cart"], [data-add-to-cart], [data-modal-target="btn-buy"], [data-hero="item"]');
 
     addToCartButtons.forEach((btn) => {
       // Check if button text contains "warenkorb" (case insensitive)

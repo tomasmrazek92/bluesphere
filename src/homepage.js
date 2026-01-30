@@ -12,6 +12,10 @@ waitForGlobals(function () {
 
 // Hero Anim
 $(document).ready(function () {
+  // Set initial hidden state for hero animation
+  gsap.set('[data-hero]', { opacity: 0 });
+  gsap.set('[data-hero="heading"]', { opacity: 1, visibility: 'hidden' });
+
   let tl = gsap.timeline();
 
   tl.fromTo(

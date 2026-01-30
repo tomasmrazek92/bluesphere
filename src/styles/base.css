@@ -13,15 +13,7 @@
   display: none;
 }
 
-/* Hero elements - hidden until animation */
-[data-hero] {
-  opacity: 0;
-}
-
-[data-hero="heading"] {
-  opacity: 1;
-  visibility: hidden;
-}
+/* Hero elements - initial state set by homepage.js for animation */
 
 /* Prevent layout shift on form fields */
 .form_field + .form_field {

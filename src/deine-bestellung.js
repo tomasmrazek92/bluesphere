@@ -479,10 +479,10 @@
   // ========================================
   function setupControls() {
     // Clear cart button
-    const clearBtn = $('[data-flow="cart-empty"], [data-cart="cart-empty"]');
-    if (clearBtn) {
-      clearBtn.style.cursor = 'pointer';
-      clearBtn.addEventListener('click', (e) => {
+    const clearBtns = $$('[data-flow="cart-empty"], [data-cart="cart-empty"]');
+    clearBtns.forEach((btn) => {
+      btn.style.cursor = 'pointer';
+      btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         if (window.CartModal) {
@@ -490,7 +490,20 @@
         }
         showNotification('Warenkorb geleert', 'info');
       });
-      debug.log('Clear cart button initialized');
+    });
+    debug.log('Clear cart buttons initialized:', clearBtns.length);
+
+    // Back button
+    const backBtn = $('.order_back');
+    if (backBtn) {
+      backBtn.style.cursor = 'pointer';
+      backBtn.addEventListener('click', () => {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = '/biomarker-packages';
+        }
+      });
     }
   }
 
