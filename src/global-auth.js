@@ -1332,7 +1332,7 @@
   // ========================================
   // CALENDLY MODAL
   // ========================================
-  const CALENDLY_URL = 'https://calendly.com/j-erdweg-longtermhealth/biomarker-bluttest';
+  const CALENDLY_URL = 'https://calendly.com/bluesphere-biomarker/bluttest';
 
   function openCalendlyModal() {
     debug.log('Opening Calendly modal');

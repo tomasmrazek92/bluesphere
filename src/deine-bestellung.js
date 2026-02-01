@@ -5,12 +5,12 @@
 
 (function () {
   const CONFIG = {
-    DEBUG: true,
+    DEBUG: false,
     WEBHOOK_DEV:
       'https://lth-rec2-dev.orangegrass-967fbaa9.germanywestcentral.azurecontainerapps.io/api/v2/events/',
     WEBHOOK_KEY_DEV:
       '1KsF2jui1P9yUkL2SdvskKGjAqT2eaOCQKraY5wZaVbOfkROvtXeYdj6ZjUSSa0Q9dK7t5qzGK9ytKclSHl_qg',
-    CALENDLY_BASE_URL: 'https://calendly.com/j-erdweg-longtermhealth/biomarker-bluttest',
+    CALENDLY_BASE_URL: 'https://calendly.com/bluesphere-biomarker/bluttest',
     PACKAGE_IDS: {
       longterm_health: 1001,
       womens_health: 1002,

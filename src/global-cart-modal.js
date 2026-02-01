@@ -12,6 +12,15 @@
 
   // URL slug to SKU mapping for /package-* pages
   const SLUG_TO_SKU = {
+    'maenner-gesundheit': 'mens_health',
+    'frauen-gesundheit': 'womens_health',
+    'chronische-entzuendung': 'chronic_inflammation',
+    'eisen-metabolismus': 'iron_metabolism',
+    'herz-gesundheit': 'heart_health',
+    'vitamin-b-stoffwechsel': 'vitamin_b_metabolism',
+    'vitamin-d': 'vitamin_d',
+    'longterm-health': 'longterm_health',
+    // Legacy slugs
     'package-mens-health': 'mens_health',
     'package-womens-health': 'womens_health',
     'package-chronic-inflammation': 'chronic_inflammation',
@@ -19,7 +28,6 @@
     'package-heart-health': 'heart_health',
     'package-vitamin-b-stoffwechsel': 'vitamin_b_metabolism',
     'package-vitamin-d': 'vitamin_d',
-    'longterm-health': 'longterm_health',
   };
 
   // Package data (shared across all pages)
@@ -565,15 +573,19 @@
     if (packageLabel) {
       const wrap = packageLabel.parentElement;
       if (wrap && !wrap.querySelector('.breadcrumb-link')) {
+        wrap.style.display = 'flex';
+        wrap.style.alignItems = 'center';
+        wrap.style.gap = '0.5em';
+
         const link = document.createElement('a');
         link.href = '/biomarker';
         link.className = 'breadcrumb-link text-size-small font-tt-norms-pro-mono text-style-allcaps';
-        link.style.cssText = 'opacity:0.5;text-decoration:none;';
+        link.style.cssText = 'opacity:0.5;text-decoration:none;white-space:nowrap;';
         link.textContent = 'Biomarker-Übersicht';
 
         const separator = document.createElement('span');
         separator.className = 'text-size-small font-tt-norms-pro-mono text-style-allcaps';
-        separator.style.cssText = 'opacity:0.5;margin:0 0.5em;';
+        separator.style.cssText = 'opacity:0.5;';
         separator.textContent = '/';
 
         wrap.insertBefore(separator, packageLabel);
