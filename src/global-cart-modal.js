@@ -5,7 +5,7 @@
 
 (function () {
   const CONFIG = {
-    DEBUG: true,
+    DEBUG: false,
     CART_KEY: 'wf_cart_v3',
     CHECKOUT_URL: '/deine-bestellung',
   };
@@ -559,6 +559,27 @@
     }
 
     debug('Package page detected:', slug, '-> SKU:', sku);
+
+    // Inject breadcrumb link before the package name
+    const packageLabel = document.querySelector('.b-test_head .text-size-small.text-style-allcaps');
+    if (packageLabel) {
+      const wrap = packageLabel.parentElement;
+      if (wrap && !wrap.querySelector('.breadcrumb-link')) {
+        const link = document.createElement('a');
+        link.href = '/biomarker';
+        link.className = 'breadcrumb-link text-size-small font-tt-norms-pro-mono text-style-allcaps';
+        link.style.cssText = 'opacity:0.5;text-decoration:none;';
+        link.textContent = 'Biomarker-Übersicht';
+
+        const separator = document.createElement('span');
+        separator.className = 'text-size-small font-tt-norms-pro-mono text-style-allcaps';
+        separator.style.cssText = 'opacity:0.5;margin:0 0.5em;';
+        separator.textContent = '/';
+
+        wrap.insertBefore(separator, packageLabel);
+        wrap.insertBefore(link, separator);
+      }
+    }
 
     // Find "In den Warenkorb" buttons - look for buttons with cart-related text or data attributes
     const addToCartButtons = $$('[data-cart="add-to-cart"], [data-add-to-cart], [data-modal-target="btn-buy"], [data-hero="item"]');
