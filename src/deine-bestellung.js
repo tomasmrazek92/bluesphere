@@ -144,7 +144,7 @@
 
           const img = $('[data-flow="cart-item-img"]', el);
           if (img) {
-            img.src = pkg.image;
+            img.src = item.image || pkg.image || '';
             img.alt = pkg.name;
           }
 
