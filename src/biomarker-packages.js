@@ -5,7 +5,7 @@
 
 (function () {
   const CONFIG = {
-    DEBUG: true,
+    DEBUG: false,
     PACKAGE_IDS: {
       longterm_health: 1001,
       womens_health: 1002,

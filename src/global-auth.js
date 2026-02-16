@@ -5,7 +5,9 @@
 
 (function () {
   const CONFIG = {
-    API_BASE: 'https://bluesphere.dev.longtermhealth.de',
+    API_BASE: window.location.hostname === 'bluesphere.health'
+      ? 'https://bluesphere.staging.longtermhealth.de'
+      : 'https://bluesphere.dev.longtermhealth.de',
     DEBUG: false,
   };
 
