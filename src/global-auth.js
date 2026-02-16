@@ -5,7 +5,7 @@
 
 (function () {
   const CONFIG = {
-    API_BASE: window.location.hostname === 'bluesphere.health'
+    API_BASE: window.location.hostname.endsWith('bluesphere.health')
       ? 'https://bluesphere.staging.longtermhealth.de'
       : 'https://bluesphere.dev.longtermhealth.de',
     DEBUG: false,
