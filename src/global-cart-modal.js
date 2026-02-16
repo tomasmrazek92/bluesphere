@@ -35,7 +35,7 @@
     mens_health: {
       name: 'Männergesundheit',
       basePrice: 8743,
-      image: '',
+      image: 'https://cdn.prod.website-files.com/6979f5501ee13a556363821b/697ab9c4d2689e1190067b75_Biomarker_Package_MenHealth.webp',
       biomarkers: {
         lh: { name: 'LH', price: 1457 },
         fsh: { name: 'FSH', price: 1457 },
@@ -50,7 +50,7 @@
     womens_health: {
       name: 'Frauengesundheit',
       basePrice: 12143,
-      image: '',
+      image: 'https://cdn.prod.website-files.com/6979f5501ee13a556363821b/697ab9c26ca5a89588124906_Biomarker_Package_WomanHealth.webp',
       biomarkers: {
         progesterone: { name: 'Progesterone', price: 1360 },
         estradiol: { name: 'Estradiol', price: 1360 },
@@ -67,7 +67,7 @@
     chronic_inflammation: {
       name: 'Chronische Entzündung',
       basePrice: 3332,
-      image: '',
+      image: 'https://cdn.prod.website-files.com/6979f5501ee13a556363821b/697ab9c648056bc3863100b9_Biomarker_Package_ChronicInflammation.webp',
       biomarkers: {
         hscrp: { name: 'hsC-reaktive Protein', price: 1166 },
         neutrophile_granulozyten: { name: 'Neutrophile Granulozyten', price: 1166 },
@@ -77,7 +77,7 @@
     iron_metabolism: {
       name: 'Eisen-Metabolismus',
       basePrice: 2873,
-      image: '',
+      image: 'https://cdn.prod.website-files.com/6979f5501ee13a556363821b/697ab9c88ffb3d849f8b18aa_Biomarker_Package_Iron.webp',
       biomarkers: {
         ferritin: { name: 'Ferritin', price: 1457 },
         transferrin: { name: 'Transferrin', price: 583 },
@@ -88,7 +88,7 @@
     heart_health: {
       name: 'Herzgesundheit',
       basePrice: 4498,
-      image: '',
+      image: 'https://cdn.prod.website-files.com/6979f5501ee13a556363821b/697ab9cb5d1e25589a6b288f_Biomarker_Package_HeartHealth.webp',
       biomarkers: {
         apo_b: { name: 'APO B', price: 2332 },
         hscrp: { name: 'hsC-reaktive Protein', price: 1166 },
@@ -98,7 +98,7 @@
     vitamin_b_metabolism: {
       name: 'Vitamin B Stoffwechsel',
       basePrice: 9236,
-      image: '',
+      image: 'https://cdn.prod.website-files.com/6979f5501ee13a556363821b/697ab9cd52df880d7b3a9951_Biomarker_Package_Nutrition.webp',
       biomarkers: {
         vitamin_b2: { name: 'Vitamin B2', price: 3322 },
         vitamin_b12: { name: 'Vitamin B12', price: 1457 },
@@ -109,7 +109,7 @@
     vitamin_d: {
       name: 'Vitamin D',
       basePrice: 1865,
-      image: '',
+      image: 'https://cdn.prod.website-files.com/6979f5501ee13a556363821b/697ab9cf77a34113a976d96d_Biomarker_Package_VitaminD.webp',
       biomarkers: {
         vitamin_d_25oh: { name: 'Vitamin D 25OH', price: 1865 },
       },
@@ -117,7 +117,7 @@
     longterm_health: {
       name: 'Longterm Health',
       basePrice: 3964,
-      image: '',
+      image: 'https://cdn.prod.website-files.com/6979f5501ee13a556363821b/697ab9bf52df880d7b3a9581_Biomarker_Package_Longtermhealth.webp',
       biomarkers: {
         hba1c: { name: 'HbA1C', price: 1166 },
         crp: { name: 'CRP', price: 1166 },
