@@ -144,7 +144,10 @@
 
           const img = $('[data-flow="cart-item-img"]', el);
           if (img) {
-            img.src = item.image || pkg.image || '';
+            const imgSrc = item.image || pkg.image || '';
+            img.src = imgSrc;
+            img.removeAttribute('srcset');
+            img.removeAttribute('sizes');
             img.alt = pkg.name;
           }
 
