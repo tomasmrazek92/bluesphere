@@ -457,14 +457,15 @@
     let errorEl = form.querySelector('.auth-error-message');
     if (!errorEl) {
       errorEl = document.createElement('div');
-      errorEl.className = 'auth-error-message';
-      errorEl.style.cssText =
-        'color: #dc3545; padding: 10px; margin: 10px 0; background: #f8d7da; border-radius: 4px; font-size: 14px;';
-      const firstField = form.querySelector('.form_field-wrap');
-      if (firstField) {
-        firstField.parentNode.insertBefore(errorEl, firstField);
+      errorEl.className = 'auth-error-message form_validation show';
+      errorEl.style.cssText = 'color: #ef4444; font-size: 12px; margin-top: 8px; margin-bottom: 8px; display: block;';
+      // Insert after the last form field wrap, before the submit button
+      const fields = form.querySelectorAll('.form_field-wrap');
+      const lastField = fields[fields.length - 1];
+      if (lastField && lastField.nextSibling) {
+        lastField.parentNode.insertBefore(errorEl, lastField.nextSibling);
       } else {
-        form.prepend(errorEl);
+        form.append(errorEl);
       }
     }
     errorEl.textContent = message;
@@ -995,7 +996,16 @@
           }
         } catch (error) {
           debug.error('Login error:', error);
-          showFormError(form, error.message);
+          const msg = error.message.toLowerCase();
+          let userMsg = 'Anmeldung fehlgeschlagen';
+          if (msg.includes('wrong credentials') || msg.includes('invalid')) {
+            userMsg = 'E-Mail oder Passwort ist falsch';
+          } else if (msg.includes('not found') || msg.includes('no user')) {
+            userMsg = 'Kein Konto mit dieser E-Mail gefunden';
+          } else if (msg.includes('not verified')) {
+            userMsg = 'E-Mail-Adresse noch nicht verifiziert';
+          }
+          showFormError(form, userMsg);
         } finally {
           setButtonLoading(signinBtn, false);
         }
