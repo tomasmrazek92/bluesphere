@@ -458,7 +458,7 @@
     if (!errorEl) {
       errorEl = document.createElement('div');
       errorEl.className = 'auth-error-message form_validation show';
-      errorEl.style.cssText = 'color: #ef4444; font-size: 12px; margin-top: 8px; margin-bottom: 8px; display: block;';
+      errorEl.style.cssText = 'color: #ef4444; font-size: 20px; text-align: center; margin-top: 20px; display: block;';
       // Insert after the last form field wrap, before the submit button
       const fields = form.querySelectorAll('.form_field-wrap');
       const lastField = fields[fields.length - 1];
