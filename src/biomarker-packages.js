@@ -561,11 +561,11 @@
 
     // Scroll to packages section when arriving via #bluttests hash
     if (window.location.hash === '#bluttests') {
-      const heading = $$('h2.heading-style-h2').find((el) => el.textContent.includes('Bluttests'));
-      if (heading) {
+      const target = document.getElementById('bluttests');
+      if (target) {
         setTimeout(() => {
-          heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 300);
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 500);
       }
     }
 

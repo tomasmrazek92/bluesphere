@@ -553,7 +553,7 @@
       const continueBtn = document.createElement('a');
       continueBtn.href = '/biomarker#bluttests';
       continueBtn.className = 'button is-secondary w-inline-block';
-      continueBtn.style.cssText = 'display:inline-flex;text-decoration:none;margin-top:1rem;';
+      continueBtn.style.cssText = 'display:inline-flex;text-decoration:none;margin-top:1rem;justify-content:center;width:100%;';
       continueBtn.innerHTML = '<span>WEITER EINKAUFEN</span>';
       continueBtn.setAttribute('data-flow', 'continue-shopping');
       orderCard.appendChild(continueBtn);

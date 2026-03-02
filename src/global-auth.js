@@ -522,7 +522,7 @@
 
     debug.log('Found form in register modal');
 
-    // Inject missing labels for fields without them (floating label pattern)
+    // Inject missing labels and fix floating label for password/datepicker fields
     registerModal.querySelectorAll('input[type="password"], input[data-toggle="datepicker"]').forEach((input) => {
       const field = input.closest('.form_field');
       if (field && !field.querySelector('.form_label')) {
@@ -531,6 +531,10 @@
         label.setAttribute('for', input.id || '');
         label.textContent = input.placeholder || '';
         field.appendChild(label);
+      }
+      // Ensure placeholder=" " for :placeholder-shown floating label CSS
+      if (!input.getAttribute('placeholder') || input.getAttribute('placeholder').trim() === '') {
+        input.setAttribute('placeholder', ' ');
       }
     });
 
