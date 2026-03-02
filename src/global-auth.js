@@ -1536,6 +1536,26 @@
   }
 
   // ========================================
+  // PASSWORD VISIBILITY TOGGLE
+  // ========================================
+  function setupPasswordToggles() {
+    $$('[id*="toggle"][id*="password"]').forEach((toggle) => {
+      toggle.style.cursor = 'pointer';
+      const field = toggle.closest('.form_field');
+      const input = field?.querySelector('input[type="password"], input[type="text"]');
+      if (!input) return;
+
+      toggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        toggle.style.opacity = isHidden ? '0.5' : '1';
+      });
+    });
+    debug.log('Password toggles initialized');
+  }
+
   // LOGOUT HANDLER
   // ========================================
   function setupLogoutHandlers() {
@@ -1606,6 +1626,7 @@
 
     handleOAuthCallback();
     setupAuthHandlers();
+    setupPasswordToggles();
     setupLogoutHandlers();
     setupNavUserHandler();
     updateAuthUI();

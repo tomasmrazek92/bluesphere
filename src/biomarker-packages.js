@@ -559,6 +559,16 @@
       renderCartUI();
     });
 
+    // Scroll to packages section when arriving via #bluttests hash
+    if (window.location.hash === '#bluttests') {
+      const heading = $$('h2.heading-style-h2').find((el) => el.textContent.includes('Bluttests'));
+      if (heading) {
+        setTimeout(() => {
+          heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
+    }
+
     debug.log('=== Biomarker package page initialized ===');
   }
 

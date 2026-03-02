@@ -10,7 +10,11 @@
       'https://lth-rec2-dev.orangegrass-967fbaa9.germanywestcentral.azurecontainerapps.io/api/v2/events/',
     WEBHOOK_KEY_DEV:
       '1KsF2jui1P9yUkL2SdvskKGjAqT2eaOCQKraY5wZaVbOfkROvtXeYdj6ZjUSSa0Q9dK7t5qzGK9ytKclSHl_qg',
-    CALENDLY_BASE_URL: 'https://calendly.com/bluesphere-biomarker/bluttest',
+    CALENDLY_URLS: {
+      ullrich: 'https://calendly.com/bluesphere-biomarker/biomarker-test-ullrich',
+      tiedtke: 'https://calendly.com/bluesphere-biomarker/bluttest',
+      default: 'https://calendly.com/bluesphere-biomarker/bluttest',
+    },
     PACKAGE_IDS: {
       longterm_health: 1001,
       womens_health: 1002,
@@ -36,6 +40,11 @@
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(cents / 100);
+
+  function getCalendlyUrl() {
+    const { practice } = getSelectedPractice();
+    return CONFIG.CALENDLY_URLS[practice] || CONFIG.CALENDLY_URLS.default;
+  }
 
   // Get PACKAGES from CartModal
   function getPackages() {
@@ -197,6 +206,12 @@
       });
     }
 
+    // Toggle "Weiter einkaufen" button visibility
+    const continueBtn = $('[data-flow="continue-shopping"]');
+    if (continueBtn) {
+      continueBtn.style.display = items.length > 0 ? 'inline-flex' : 'none';
+    }
+
     // Update cart count
     $$('[data-cart-count]').forEach((el) => (el.textContent = items.length));
 
@@ -207,6 +222,7 @@
   // INLINE CALENDLY
   // ========================================
   let calendlyInjected = false;
+  let calendlyPractice = null;
 
   function getSelectedPractice() {
     const practiceSelect = $(
@@ -239,14 +255,20 @@
     if (headline) headline.style.display = show ? '' : 'none';
     if (widgetContainer) widgetContainer.style.display = show ? '' : 'none';
 
-    if (show && widgetContainer && !calendlyInjected) {
-      injectInlineCalendly(widgetContainer);
-      calendlyInjected = true;
+    if (show && widgetContainer) {
+      // Re-inject if practice changed or not yet injected
+      if (!calendlyInjected || calendlyPractice !== practice) {
+        widgetContainer.innerHTML = '';
+        injectInlineCalendly(widgetContainer);
+        calendlyInjected = true;
+        calendlyPractice = practice;
+      }
     }
 
     if (!show && widgetContainer) {
       widgetContainer.innerHTML = '';
       calendlyInjected = false;
+      calendlyPractice = null;
     }
 
     // Update Fortfahren button appearance
@@ -270,7 +292,7 @@
     const email = user?.email || localStorage.getItem('userEmail') || '';
     const nameParts = name.trim().split(/\s+/);
 
-    let url = CONFIG.CALENDLY_BASE_URL + '?hide_gdpr_banner=1';
+    let url = getCalendlyUrl() + '?hide_gdpr_banner=1';
     if (name) url += '&name=' + encodeURIComponent(name);
     if (email) url += '&email=' + encodeURIComponent(email);
 
@@ -524,6 +546,18 @@
       });
     });
     debug.log('Clear cart buttons initialized:', clearBtns.length);
+
+    // "Weiter einkaufen" button
+    const orderCard = $('[data-flow="cart-item"]')?.closest('.order_card');
+    if (orderCard) {
+      const continueBtn = document.createElement('a');
+      continueBtn.href = '/biomarker#bluttests';
+      continueBtn.className = 'button is-secondary w-inline-block';
+      continueBtn.style.cssText = 'display:inline-flex;text-decoration:none;margin-top:1rem;';
+      continueBtn.innerHTML = '<span>WEITER EINKAUFEN</span>';
+      continueBtn.setAttribute('data-flow', 'continue-shopping');
+      orderCard.appendChild(continueBtn);
+    }
 
     // Back button
     const backBtn = $('.order_back');
