@@ -1543,11 +1543,34 @@
   // PASSWORD VISIBILITY TOGGLE
   // ========================================
   function setupPasswordToggles() {
+    // Inject CSS for floating label on password fields where the icon
+    // breaks the input + label adjacent sibling selector
+    const style = document.createElement('style');
+    style.textContent =
+      '.form_field.pw-has-value .form_label,' +
+      '.form_field.pw-focused .form_label {' +
+      '  text-transform: uppercase; letter-spacing: 0.05em;' +
+      '  font-size: 0.8rem; font-weight: 500; top: 0.6rem;' +
+      '}';
+    document.head.appendChild(style);
+
     $$('[id*="toggle"][id*="password"]').forEach((toggle) => {
       toggle.style.cursor = 'pointer';
       const field = toggle.closest('.form_field');
       const input = field?.querySelector('input[type="password"], input[type="text"]');
       if (!input) return;
+
+      // Floating label via JS since icon div breaks CSS + selector
+      const updateLabel = () => {
+        field.classList.toggle('pw-has-value', input.value.length > 0);
+      };
+      input.addEventListener('input', updateLabel);
+      input.addEventListener('focus', () => field.classList.add('pw-focused'));
+      input.addEventListener('blur', () => {
+        field.classList.remove('pw-focused');
+        updateLabel();
+      });
+      updateLabel();
 
       toggle.addEventListener('click', (e) => {
         e.preventDefault();
