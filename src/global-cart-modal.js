@@ -366,6 +366,11 @@
       items.push(entry);
       writeCart(items);
       showNotification('Paket hinzugefügt', 'success');
+      // Navigate to order page after short delay so notification is visible
+      setTimeout(() => {
+        window.location.href = CONFIG.CHECKOUT_URL;
+      }, 600);
+      return;
     }
     openCartModal();
   }

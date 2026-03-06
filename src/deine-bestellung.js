@@ -200,7 +200,7 @@
     const orderCard = cartContainer?.closest('.order_card');
     if (orderCard) {
       Array.from(orderCard.children).forEach((child) => {
-        if (!child.classList.contains('cart-empty-state')) {
+        if (!child.classList.contains('cart-empty-state') && child.getAttribute('data-flow') !== 'continue-shopping') {
           child.style.display = items.length === 0 ? 'none' : '';
         }
       });
